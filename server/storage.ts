@@ -1,37 +1,34 @@
-import { type User, type InsertUser } from "@shared/schema";
+import type { FinancialAnalysisResult } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
+// Storage interface for financial analysis results
+// This is in-memory storage for the MVP - data is not persisted across restarts
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  saveAnalysis(analysis: FinancialAnalysisResult): Promise<{ id: string; analysis: FinancialAnalysisResult }>;
+  getAnalysis(id: string): Promise<FinancialAnalysisResult | undefined>;
+  getAllAnalyses(): Promise<FinancialAnalysisResult[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private analyses: Map<string, FinancialAnalysisResult>;
 
   constructor() {
-    this.users = new Map();
+    this.analyses = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async saveAnalysis(analysis: FinancialAnalysisResult): Promise<{ id: string; analysis: FinancialAnalysisResult }> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    this.analyses.set(id, analysis);
+    return { id, analysis };
+  }
+
+  async getAnalysis(id: string): Promise<FinancialAnalysisResult | undefined> {
+    return this.analyses.get(id);
+  }
+
+  async getAllAnalyses(): Promise<FinancialAnalysisResult[]> {
+    return Array.from(this.analyses.values());
   }
 }
 
