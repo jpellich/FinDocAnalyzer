@@ -23,12 +23,15 @@ export interface FinancialData {
   
   // Detailed balance sheet line items (optional)
   // Section I - Non-current assets
-  intangibleAssets?: number;
-  rdResults?: number;
-  fixedAssets?: number;
-  financialInvestments?: number;
-  deferredTaxAssets?: number;
-  otherNonCurrentAssets?: number;
+  intangibleAssets?: number; // 1110
+  rdResults?: number; // 1120
+  intangibleExplorationAssets?: number; // 1130
+  tangibleExplorationAssets?: number; // 1140
+  fixedAssets?: number; // 1150
+  profitableInvestmentsInTangibleAssets?: number; // 1160
+  financialInvestments?: number; // 1170
+  deferredTaxAssets?: number; // 1180
+  otherNonCurrentAssets?: number; // 1190
   
   // Section II - Current assets (already have main items above)
   otherCurrentAssets?: number;
@@ -150,7 +153,10 @@ export const financialDataSchema = z.object({
   // Detailed line items
   intangibleAssets: z.number().optional(),
   rdResults: z.number().optional(),
+  intangibleExplorationAssets: z.number().optional(),
+  tangibleExplorationAssets: z.number().optional(),
   fixedAssets: z.number().optional(),
+  profitableInvestmentsInTangibleAssets: z.number().optional(),
   financialInvestments: z.number().optional(),
   deferredTaxAssets: z.number().optional(),
   otherNonCurrentAssets: z.number().optional(),

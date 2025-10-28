@@ -306,6 +306,7 @@ export default function Home() {
                         title="Рентабельность активов (ROA)"
                         ratio={analysisResult.ratios.roa}
                         trend="up"
+                        isPercentage={true}
                       />
                     )}
                     {analysisResult.ratios.roe && (
@@ -313,6 +314,7 @@ export default function Home() {
                         title="Рентабельность капитала (ROE)"
                         ratio={analysisResult.ratios.roe}
                         trend="up"
+                        isPercentage={true}
                       />
                     )}
                     {analysisResult.ratios.ros && (
@@ -320,6 +322,7 @@ export default function Home() {
                         title="Рентабельность продаж (ROS)"
                         ratio={analysisResult.ratios.ros}
                         trend="up"
+                        isPercentage={true}
                       />
                     )}
                     {analysisResult.ratios.grossProfitMargin && (
@@ -327,6 +330,7 @@ export default function Home() {
                         title="Рентабельность по валовой прибыли"
                         ratio={analysisResult.ratios.grossProfitMargin}
                         trend="up"
+                        isPercentage={true}
                       />
                     )}
                     {analysisResult.ratios.operatingProfitMargin && (
@@ -334,6 +338,7 @@ export default function Home() {
                         title="Рентабельность по прибыли от продаж"
                         ratio={analysisResult.ratios.operatingProfitMargin}
                         trend="up"
+                        isPercentage={true}
                       />
                     )}
                     {analysisResult.ratios.netProfitMargin && (
@@ -341,6 +346,7 @@ export default function Home() {
                         title="Рентабельность по чистой прибыли"
                         ratio={analysisResult.ratios.netProfitMargin}
                         trend="up"
+                        isPercentage={true}
                       />
                     )}
                   </div>

@@ -264,6 +264,115 @@ function parseFinancialDataFromText(text: string): FinancialData {
       "operating income",
       "прибыль от продаж"
     ], true),
+    grossProfit: findValue(dataMap, foundKeys, [
+      "валовая прибыль убыток",
+      "валовая прибыль",
+      "gross profit"
+    ], true),
+    // Section I - Non-current assets details
+    intangibleAssets: findValue(dataMap, foundKeys, [
+      "нематериальные активы",
+      "intangible assets",
+      "нма"
+    ], true),
+    rdResults: findValue(dataMap, foundKeys, [
+      "результаты исследований и разработок",
+      "research and development results",
+      "ниокр"
+    ], true),
+    intangibleExplorationAssets: findValue(dataMap, foundKeys, [
+      "нематериальные поисковые активы",
+      "intangible exploration assets"
+    ], true),
+    tangibleExplorationAssets: findValue(dataMap, foundKeys, [
+      "материальные поисковые активы",
+      "tangible exploration assets"
+    ], true),
+    fixedAssets: findValue(dataMap, foundKeys, [
+      "основные средства",
+      "fixed assets",
+      "ос"
+    ], true),
+    profitableInvestmentsInTangibleAssets: findValue(dataMap, foundKeys, [
+      "доходные вложения в материальные ценности",
+      "profitable investments in tangible assets"
+    ], true),
+    financialInvestments: findValue(dataMap, foundKeys, [
+      "финансовые вложения",
+      "financial investments",
+      "долгосрочные финансовые вложения"
+    ], true),
+    deferredTaxAssets: findValue(dataMap, foundKeys, [
+      "отложенные налоговые активы",
+      "deferred tax assets",
+      "она"
+    ], true),
+    otherNonCurrentAssets: findValue(dataMap, foundKeys, [
+      "прочие внеоборотные активы",
+      "other non current assets"
+    ], true),
+    // Section II - Current assets details
+    otherCurrentAssets: findValue(dataMap, foundKeys, [
+      "прочие оборотные активы",
+      "other current assets"
+    ], true),
+    // Section III - Capital and reserves details
+    authorizedCapital: findValue(dataMap, foundKeys, [
+      "уставный капитал складочный капитал уставный фонд вклады товарищей",
+      "уставный капитал",
+      "authorized capital"
+    ], true),
+    retainedEarnings: findValue(dataMap, foundKeys, [
+      "нераспределенная прибыль непокрытый убыток",
+      "нераспределенная прибыль",
+      "retained earnings"
+    ], true),
+    revaluationReserve: findValue(dataMap, foundKeys, [
+      "переоценка внеоборотных активов",
+      "revaluation reserve"
+    ], true),
+    additionalCapital: findValue(dataMap, foundKeys, [
+      "добавочный капитал без переоценки",
+      "добавочный капитал",
+      "additional capital"
+    ], true),
+    // Section IV - Long-term liabilities details
+    borrowedFundsLongTerm: findValue(dataMap, foundKeys, [
+      "заемные средства долгосрочные",
+      "long term borrowed funds"
+    ], true),
+    deferredTaxLiabilities: findValue(dataMap, foundKeys, [
+      "отложенные налоговые обязательства",
+      "deferred tax liabilities",
+      "оно"
+    ], true),
+    estimatedLiabilities: findValue(dataMap, foundKeys, [
+      "оценочные обязательства",
+      "estimated liabilities"
+    ], true),
+    otherLongTermLiabilities: findValue(dataMap, foundKeys, [
+      "прочие долгосрочные обязательства",
+      "прочие обязательства",
+      "other long term liabilities"
+    ], true),
+    // Section V - Current liabilities details
+    accountsPayable: findValue(dataMap, foundKeys, [
+      "кредиторская задолженность",
+      "accounts payable",
+      "кредиторы"
+    ], true),
+    deferredIncome: findValue(dataMap, foundKeys, [
+      "доходы будущих периодов",
+      "deferred income"
+    ], true),
+    estimatedLiabilitiesShortTerm: findValue(dataMap, foundKeys, [
+      "оценочные обязательства краткосрочные",
+      "short term estimated liabilities"
+    ], true),
+    otherCurrentLiabilities: findValue(dataMap, foundKeys, [
+      "прочие краткосрочные обязательства",
+      "other current liabilities"
+    ], true),
   };
 
   // Validate the parsed data using Zod schema

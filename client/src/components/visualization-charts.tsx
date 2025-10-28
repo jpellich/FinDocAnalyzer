@@ -77,6 +77,29 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
     },
   ];
 
+  // Profitability data - only if profitability ratios exist
+  const profitabilityData = [];
+  if (result.ratios.roa) {
+    profitabilityData.push({ name: "ROA", value: result.ratios.roa.value * 100 });
+  }
+  if (result.ratios.roe) {
+    profitabilityData.push({ name: "ROE", value: result.ratios.roe.value * 100 });
+  }
+  if (result.ratios.ros) {
+    profitabilityData.push({ name: "ROS", value: result.ratios.ros.value * 100 });
+  }
+  if (result.ratios.grossProfitMargin) {
+    profitabilityData.push({ name: "Валовая рент.", value: result.ratios.grossProfitMargin.value * 100 });
+  }
+  if (result.ratios.operatingProfitMargin) {
+    profitabilityData.push({ name: "Опер. рент.", value: result.ratios.operatingProfitMargin.value * 100 });
+  }
+  if (result.ratios.netProfitMargin) {
+    profitabilityData.push({ name: "Чистая рент.", value: result.ratios.netProfitMargin.value * 100 });
+  }
+
+  const hasProfitabilityData = profitabilityData.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Liquidity Chart */}
@@ -148,6 +171,46 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+
+      {/* Profitability Chart - только если есть данные */}
+      {hasProfitabilityData && (
+        <Card data-testid="card-profitability-chart">
+          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
+            <CardTitle className="text-xl font-semibold">
+              Показатели рентабельности
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={profitabilityData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis
+                  dataKey="name"
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  label={{ value: '%', angle: -90, position: 'insideLeft' }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "0.5rem",
+                  }}
+                  formatter={(value: number) => [`${value.toFixed(2)}%`, 'Значение']}
+                />
+                <Legend />
+                <Bar dataKey="value" fill="hsl(var(--chart-4))" name="Рентабельность (%)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Radar Chart */}
       <Card data-testid="card-radar-chart">

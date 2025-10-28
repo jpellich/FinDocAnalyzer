@@ -2,14 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import type { RatioWithStatus } from "@shared/schema";
+import { FractionFormula } from "./fraction-formula";
 
 interface RatioCardProps {
   title: string;
   ratio: RatioWithStatus;
   trend?: "up" | "down" | "stable";
+  isPercentage?: boolean;
 }
 
-export function RatioCard({ title, ratio, trend }: RatioCardProps) {
+export function RatioCard({ title, ratio, trend, isPercentage = false }: RatioCardProps) {
   const getStatusColor = (status: RatioWithStatus["status"]) => {
     switch (status) {
       case "excellent":
@@ -71,7 +73,7 @@ export function RatioCard({ title, ratio, trend }: RatioCardProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="text-3xl font-bold font-mono" data-testid="text-ratio-value">
-          {ratio.value.toFixed(2)}
+          {isPercentage ? `${(ratio.value * 100).toFixed(2)}%` : ratio.value.toFixed(2)}
         </div>
         
         <div className="flex items-center gap-2">
@@ -93,10 +95,9 @@ export function RatioCard({ title, ratio, trend }: RatioCardProps) {
             {ratio.description}
           </p>
           {ratio.formula && (
-            <div className="mt-2 pt-2 border-t border-border">
-              <p className="text-xs font-mono text-muted-foreground" data-testid="text-formula">
-                {ratio.formula}
-              </p>
+            <div className="mt-2 pt-2 border-t border-border flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Формула:</span>
+              <FractionFormula formula={ratio.formula} className="text-muted-foreground" />
             </div>
           )}
         </div>

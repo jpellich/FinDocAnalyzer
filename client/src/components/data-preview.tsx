@@ -43,17 +43,23 @@ export function DataPreview({ data }: DataPreviewProps) {
           key: "nonCurrentAssets",
           details: [
             data.intangibleAssets !== undefined && data.intangibleAssets !== 0 
-              ? { label: "Нематериальные активы", value: data.intangibleAssets, indent: 1 } : null,
+              ? { label: "Нематериальные активы (1110)", value: data.intangibleAssets, indent: 1 } : null,
             data.rdResults !== undefined && data.rdResults !== 0
-              ? { label: "Результаты исследований и разработок", value: data.rdResults, indent: 1 } : null,
+              ? { label: "Результаты исследований и разработок (1120)", value: data.rdResults, indent: 1 } : null,
+            data.intangibleExplorationAssets !== undefined && data.intangibleExplorationAssets !== 0
+              ? { label: "Нематериальные поисковые активы (1130)", value: data.intangibleExplorationAssets, indent: 1 } : null,
+            data.tangibleExplorationAssets !== undefined && data.tangibleExplorationAssets !== 0
+              ? { label: "Материальные поисковые активы (1140)", value: data.tangibleExplorationAssets, indent: 1 } : null,
             data.fixedAssets !== undefined && data.fixedAssets !== 0
-              ? { label: "Основные средства", value: data.fixedAssets, indent: 1 } : null,
+              ? { label: "Основные средства (1150)", value: data.fixedAssets, indent: 1 } : null,
+            data.profitableInvestmentsInTangibleAssets !== undefined && data.profitableInvestmentsInTangibleAssets !== 0
+              ? { label: "Доходные вложения в материальные ценности (1160)", value: data.profitableInvestmentsInTangibleAssets, indent: 1 } : null,
             data.financialInvestments !== undefined && data.financialInvestments !== 0
-              ? { label: "Финансовые вложения", value: data.financialInvestments, indent: 1 } : null,
+              ? { label: "Финансовые вложения (1170)", value: data.financialInvestments, indent: 1 } : null,
             data.deferredTaxAssets !== undefined && data.deferredTaxAssets !== 0
-              ? { label: "Отложенные налоговые активы", value: data.deferredTaxAssets, indent: 1 } : null,
+              ? { label: "Отложенные налоговые активы (1180)", value: data.deferredTaxAssets, indent: 1 } : null,
             data.otherNonCurrentAssets !== undefined && data.otherNonCurrentAssets !== 0
-              ? { label: "Прочие внеоборотные активы", value: data.otherNonCurrentAssets, indent: 1 } : null,
+              ? { label: "Прочие внеоборотные активы (1190)", value: data.otherNonCurrentAssets, indent: 1 } : null,
           ].filter(Boolean)
         },
         {
