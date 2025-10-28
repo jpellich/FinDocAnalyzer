@@ -37,12 +37,22 @@ Core financial calculations include liquidity ratios (current, quick, absolute) 
 AI analysis is integrated with OpenAI GPT-5, featuring a graceful fallback to rule-based analysis if the API encounters issues. Data validation is performed using Zod schemas.
 
 ### Feature Specifications
--   **File Upload & Parsing**: Supports Excel, DOCX (via Mammoth), and PDF (via pdf-parse) with intelligent content extraction.
--   **Financial Data Display**: Comprehensive display of the balance sheet (ASSETS/LIABILITIES with sections I-V) and Profit & Loss statement.
+-   **File Upload & Parsing**: Supports Excel, DOCX (via Mammoth), and PDF (via pdf-parse) with intelligent content extraction. Parser recognizes all standard balance sheet line items with codes (1110-1190 for Section I, etc.).
+-   **Financial Data Display**: 
+    -   Comprehensive display of the balance sheet (ASSETS/LIABILITIES with sections I-V) and Profit & Loss statement.
+    -   **Expandable/Collapsible Sections**: All balance sheet sections (I-V) are initially collapsed and can be clicked to reveal detailed line items with their corresponding codes.
+    -   Section I (Внеоборотные активы) includes: Нематериальные активы (1110), Результаты исследований и разработок (1120), Нематериальные поисковые активы (1130), Материальные поисковые активы (1140), Основные средства (1150), Доходные вложения в материальные ценности (1160), Финансовые вложения (1170), Отложенные налоговые активы (1180), Прочие внеоборотные активы (1190).
+    -   Sections III, IV, and V also show detailed breakdowns when expanded.
 -   **Ratio Calculation**: Automatic calculation and display of key financial ratios with color-coded status indicators (excellent/good/warning/critical).
+    -   **Visual Fraction Formulas**: Calculation formulas display with proper mathematical fractions (numerator over denominator) instead of slash division symbols.
+-   **Profitability Metrics**:
+    -   Six profitability ratios: ROA, ROE, ROS, Gross Profit Margin, Operating Profit Margin, Net Profit Margin.
+    -   **Percentage Display**: All profitability values shown as percentages with two decimal places (e.g., "15.20%").
 -   **AI Analysis**: A dedicated section for AI-generated insights, including strengths, weaknesses, and recommendations.
--   **Data Visualization**: Interactive charts (bar, radar) using Recharts.
--   **Report Export**: Export of detailed financial reports to TXT format, including balance sheet, ratios, and AI analysis.
+-   **Data Visualization**: 
+    -   Interactive charts (bar, radar) using Recharts.
+    -   **Profitability Chart**: Dedicated bar chart for profitability ratios (conditionally displayed when income data exists).
+-   **Report Export**: Export of detailed financial reports to TXT format, including balance sheet, ratios, profitability metrics, and AI analysis.
 -   **User Interface**: Responsive design, professional financial styling, and dark/light theme support. Loading states include progress bars and stage indicators.
 
 ### System Design Choices
