@@ -19,6 +19,37 @@ export interface FinancialData {
   revenue?: number;
   netIncome?: number;
   operatingIncome?: number;
+  grossProfit?: number;
+  
+  // Detailed balance sheet line items (optional)
+  // Section I - Non-current assets
+  intangibleAssets?: number;
+  rdResults?: number;
+  fixedAssets?: number;
+  financialInvestments?: number;
+  deferredTaxAssets?: number;
+  otherNonCurrentAssets?: number;
+  
+  // Section II - Current assets (already have main items above)
+  otherCurrentAssets?: number;
+  
+  // Section III - Capital and reserves
+  authorizedCapital?: number;
+  retainedEarnings?: number;
+  revaluationReserve?: number;
+  additionalCapital?: number;
+  
+  // Section IV - Long-term liabilities (already have longTermDebt)
+  borrowedFundsLongTerm?: number;
+  deferredTaxLiabilities?: number;
+  estimatedLiabilities?: number;
+  otherLongTermLiabilities?: number;
+  
+  // Section V - Current liabilities (already have shortTermDebt, currentLiabilities)
+  accountsPayable?: number;
+  deferredIncome?: number;
+  estimatedLiabilitiesShortTerm?: number;
+  otherCurrentLiabilities?: number;
 }
 
 // Financial ratios calculated from the data
@@ -34,6 +65,14 @@ export interface FinancialRatios {
   debtRatio: number;
   financialLeverageRatio: number;
   
+  // Profitability ratios
+  roa?: number; // Return on Assets
+  roe?: number; // Return on Equity
+  ros?: number; // Return on Sales
+  grossProfitMargin?: number; // Gross Profit Margin
+  operatingProfitMargin?: number; // Operating Profit Margin (ROS based on operating income)
+  netProfitMargin?: number; // Net Profit Margin
+  
   // Additional ratios
   workingCapital: number;
   equityManeuverability?: number;
@@ -47,6 +86,7 @@ export interface RatioWithStatus {
   status: RatioStatus;
   benchmark: string;
   description: string;
+  formula: string;
 }
 
 export interface FinancialAnalysisResult {
@@ -60,6 +100,13 @@ export interface FinancialAnalysisResult {
     debtRatio: RatioWithStatus;
     financialLeverageRatio: RatioWithStatus;
     workingCapital: RatioWithStatus;
+    // Profitability ratios (optional)
+    roa?: RatioWithStatus;
+    roe?: RatioWithStatus;
+    ros?: RatioWithStatus;
+    grossProfitMargin?: RatioWithStatus;
+    operatingProfitMargin?: RatioWithStatus;
+    netProfitMargin?: RatioWithStatus;
   };
   aiAnalysis: {
     summary: string;
@@ -99,6 +146,27 @@ export const financialDataSchema = z.object({
   revenue: z.number().optional(),
   netIncome: z.number().optional(),
   operatingIncome: z.number().optional(),
+  grossProfit: z.number().optional(),
+  // Detailed line items
+  intangibleAssets: z.number().optional(),
+  rdResults: z.number().optional(),
+  fixedAssets: z.number().optional(),
+  financialInvestments: z.number().optional(),
+  deferredTaxAssets: z.number().optional(),
+  otherNonCurrentAssets: z.number().optional(),
+  otherCurrentAssets: z.number().optional(),
+  authorizedCapital: z.number().optional(),
+  retainedEarnings: z.number().optional(),
+  revaluationReserve: z.number().optional(),
+  additionalCapital: z.number().optional(),
+  borrowedFundsLongTerm: z.number().optional(),
+  deferredTaxLiabilities: z.number().optional(),
+  estimatedLiabilities: z.number().optional(),
+  otherLongTermLiabilities: z.number().optional(),
+  accountsPayable: z.number().optional(),
+  deferredIncome: z.number().optional(),
+  estimatedLiabilitiesShortTerm: z.number().optional(),
+  otherCurrentLiabilities: z.number().optional(),
 });
 
 export type InsertFinancialData = z.infer<typeof financialDataSchema>;

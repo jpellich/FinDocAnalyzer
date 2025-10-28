@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { FinancialData } from "@shared/schema";
 
 interface DataPreviewProps {
@@ -7,6 +9,18 @@ interface DataPreviewProps {
 }
 
 export function DataPreview({ data }: DataPreviewProps) {
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  const toggleSection = (sectionKey: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionKey)) {
+      newExpanded.delete(sectionKey);
+    } else {
+      newExpanded.add(sectionKey);
+    }
+    setExpandedSections(newExpanded);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("ru-RU", {
       style: "decimal",
@@ -15,7 +29,7 @@ export function DataPreview({ data }: DataPreviewProps) {
     }).format(value);
   };
 
-  // Структурированное отображение бухгалтерского баланса
+  // Структурированное отображение бухгалтерского баланса с раскрывающимися разделами
   const balanceSheet = [
     {
       section: "АКТИВ",
@@ -24,18 +38,40 @@ export function DataPreview({ data }: DataPreviewProps) {
           subsection: "I. Внеоборотные активы",
           value: data.totalAssets - data.currentAssets,
           indent: 0,
-          bold: true
+          bold: true,
+          expandable: true,
+          key: "nonCurrentAssets",
+          details: [
+            data.intangibleAssets !== undefined && data.intangibleAssets !== 0 
+              ? { label: "Нематериальные активы", value: data.intangibleAssets, indent: 1 } : null,
+            data.rdResults !== undefined && data.rdResults !== 0
+              ? { label: "Результаты исследований и разработок", value: data.rdResults, indent: 1 } : null,
+            data.fixedAssets !== undefined && data.fixedAssets !== 0
+              ? { label: "Основные средства", value: data.fixedAssets, indent: 1 } : null,
+            data.financialInvestments !== undefined && data.financialInvestments !== 0
+              ? { label: "Финансовые вложения", value: data.financialInvestments, indent: 1 } : null,
+            data.deferredTaxAssets !== undefined && data.deferredTaxAssets !== 0
+              ? { label: "Отложенные налоговые активы", value: data.deferredTaxAssets, indent: 1 } : null,
+            data.otherNonCurrentAssets !== undefined && data.otherNonCurrentAssets !== 0
+              ? { label: "Прочие внеоборотные активы", value: data.otherNonCurrentAssets, indent: 1 } : null,
+          ].filter(Boolean)
         },
         {
           subsection: "II. Оборотные активы",
           value: data.currentAssets,
           indent: 0,
-          bold: true
+          bold: true,
+          expandable: true,
+          key: "currentAssets",
+          details: [
+            { label: "Запасы", value: data.inventory, indent: 1 },
+            { label: "Дебиторская задолженность", value: data.accountsReceivable, indent: 1 },
+            { label: "Финансовые вложения (краткосрочные)", value: data.shortTermInvestments, indent: 1 },
+            { label: "Денежные средства и эквиваленты", value: data.cashAndEquivalents, indent: 1 },
+            data.otherCurrentAssets !== undefined && data.otherCurrentAssets !== 0
+              ? { label: "Прочие оборотные активы", value: data.otherCurrentAssets, indent: 1 } : null,
+          ].filter(Boolean)
         },
-        { label: "Запасы", value: data.inventory, indent: 1 },
-        { label: "Дебиторская задолженность", value: data.accountsReceivable, indent: 1 },
-        { label: "Финансовые вложения (краткосрочные)", value: data.shortTermInvestments, indent: 1 },
-        { label: "Денежные средства и эквиваленты", value: data.cashAndEquivalents, indent: 1 },
         { 
           label: "БАЛАНС (АКТИВ)", 
           value: data.totalAssets, 
@@ -52,21 +88,57 @@ export function DataPreview({ data }: DataPreviewProps) {
           subsection: "III. Капитал и резервы",
           value: data.equity,
           indent: 0,
-          bold: true
+          bold: true,
+          expandable: true,
+          key: "equity",
+          details: [
+            data.authorizedCapital !== undefined && data.authorizedCapital !== 0
+              ? { label: "Уставный капитал", value: data.authorizedCapital, indent: 1 } : null,
+            data.additionalCapital !== undefined && data.additionalCapital !== 0
+              ? { label: "Добавочный капитал", value: data.additionalCapital, indent: 1 } : null,
+            data.revaluationReserve !== undefined && data.revaluationReserve !== 0
+              ? { label: "Резервный капитал", value: data.revaluationReserve, indent: 1 } : null,
+            data.retainedEarnings !== undefined && data.retainedEarnings !== 0
+              ? { label: "Нераспределенная прибыль (непокрытый убыток)", value: data.retainedEarnings, indent: 1 } : null,
+          ].filter(Boolean)
         },
         {
           subsection: "IV. Долгосрочные обязательства",
           value: data.longTermDebt,
           indent: 0,
-          bold: true
+          bold: true,
+          expandable: true,
+          key: "longTermLiabilities",
+          details: [
+            data.borrowedFundsLongTerm !== undefined && data.borrowedFundsLongTerm !== 0
+              ? { label: "Заемные средства", value: data.borrowedFundsLongTerm, indent: 1 } : null,
+            data.deferredTaxLiabilities !== undefined && data.deferredTaxLiabilities !== 0
+              ? { label: "Отложенные налоговые обязательства", value: data.deferredTaxLiabilities, indent: 1 } : null,
+            data.estimatedLiabilities !== undefined && data.estimatedLiabilities !== 0
+              ? { label: "Оценочные обязательства", value: data.estimatedLiabilities, indent: 1 } : null,
+            data.otherLongTermLiabilities !== undefined && data.otherLongTermLiabilities !== 0
+              ? { label: "Прочие долгосрочные обязательства", value: data.otherLongTermLiabilities, indent: 1 } : null,
+          ].filter(Boolean)
         },
         {
           subsection: "V. Краткосрочные обязательства",
           value: data.currentLiabilities,
           indent: 0,
-          bold: true
+          bold: true,
+          expandable: true,
+          key: "currentLiabilities",
+          details: [
+            { label: "Заемные средства", value: data.shortTermDebt, indent: 1 },
+            data.accountsPayable !== undefined && data.accountsPayable !== 0
+              ? { label: "Кредиторская задолженность", value: data.accountsPayable, indent: 1 } : null,
+            data.deferredIncome !== undefined && data.deferredIncome !== 0
+              ? { label: "Доходы будущих периодов", value: data.deferredIncome, indent: 1 } : null,
+            data.estimatedLiabilitiesShortTerm !== undefined && data.estimatedLiabilitiesShortTerm !== 0
+              ? { label: "Оценочные обязательства", value: data.estimatedLiabilitiesShortTerm, indent: 1 } : null,
+            data.otherCurrentLiabilities !== undefined && data.otherCurrentLiabilities !== 0
+              ? { label: "Прочие краткосрочные обязательства", value: data.otherCurrentLiabilities, indent: 1 } : null,
+          ].filter(Boolean)
         },
-        { label: "Заемные средства", value: data.shortTermDebt, indent: 1 },
         { 
           label: "БАЛАНС (ПАССИВ)", 
           value: data.equity + data.longTermDebt + data.currentLiabilities, 
@@ -108,27 +180,66 @@ export function DataPreview({ data }: DataPreviewProps) {
                 <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-2 border-b">
                   {section.section}
                 </div>
-                {section.items.map((item: any, itemIndex) => (
-                  <div
-                    key={itemIndex}
-                    className={`flex justify-between items-center py-2.5 px-4 rounded-md transition-colors ${
-                      item.highlight
-                        ? "bg-primary/10 border border-primary/20"
-                        : item.bold
-                        ? "bg-muted/50"
-                        : "hover-elevate"
-                    }`}
-                    style={{ paddingLeft: `${1 + item.indent * 1.5}rem` }}
-                    data-testid={`row-data-${sectionIndex}-${itemIndex}`}
-                  >
-                    <span className={`${item.bold ? "font-semibold" : "text-sm"} ${item.subsection ? "text-sm" : ""}`}>
-                      {item.label || item.subsection}
-                    </span>
-                    <span className={`font-mono ${item.bold ? "font-semibold" : ""}`}>
-                      {formatCurrency(item.value)}
-                    </span>
-                  </div>
-                ))}
+                {section.items.map((item: any, itemIndex) => {
+                  const isExpanded = item.key && expandedSections.has(item.key);
+                  const hasDetails = item.details && item.details.length > 0;
+                  
+                  return (
+                    <div key={itemIndex}>
+                      <div
+                        className={`flex justify-between items-center py-2.5 px-4 rounded-md transition-colors ${
+                          item.highlight
+                            ? "bg-primary/10 border border-primary/20"
+                            : item.bold
+                            ? "bg-muted/50"
+                            : "hover-elevate"
+                        } ${item.expandable && hasDetails ? "cursor-pointer" : ""}`}
+                        style={{ paddingLeft: `${1 + item.indent * 1.5}rem` }}
+                        data-testid={`row-data-${sectionIndex}-${itemIndex}`}
+                        onClick={() => item.expandable && hasDetails && toggleSection(item.key)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {item.expandable && hasDetails && (
+                            <div className="text-muted-foreground">
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" data-testid={`icon-chevron-down-${item.key}`} />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" data-testid={`icon-chevron-right-${item.key}`} />
+                              )}
+                            </div>
+                          )}
+                          <span className={`${item.bold ? "font-semibold" : "text-sm"} ${item.subsection ? "text-sm" : ""}`}>
+                            {item.label || item.subsection}
+                          </span>
+                        </div>
+                        <span className={`font-mono ${item.bold ? "font-semibold" : ""}`}>
+                          {formatCurrency(item.value)}
+                        </span>
+                      </div>
+                      
+                      {/* Раскрываемые детали */}
+                      {item.expandable && hasDetails && isExpanded && (
+                        <div className="ml-4 mt-1 space-y-1" data-testid={`details-${item.key}`}>
+                          {item.details.map((detail: any, detailIndex: number) => (
+                            <div
+                              key={detailIndex}
+                              className="flex justify-between items-center py-2 px-4 rounded-md hover-elevate"
+                              style={{ paddingLeft: `${1 + detail.indent * 1.5}rem` }}
+                              data-testid={`detail-${item.key}-${detailIndex}`}
+                            >
+                              <span className="text-sm text-muted-foreground">
+                                {detail.label}
+                              </span>
+                              <span className="font-mono text-sm">
+                                {formatCurrency(detail.value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>

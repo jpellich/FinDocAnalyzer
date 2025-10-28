@@ -293,6 +293,59 @@ export default function Home() {
                   />
                 </div>
               </div>
+
+              {/* Profitability Ratios */}
+              {(analysisResult.ratios.roa || analysisResult.ratios.roe || analysisResult.ratios.grossProfitMargin || analysisResult.ratios.operatingProfitMargin || analysisResult.ratios.netProfitMargin) && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-muted-foreground uppercase tracking-wide">
+                    Показатели рентабельности
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {analysisResult.ratios.roa && (
+                      <RatioCard
+                        title="Рентабельность активов (ROA)"
+                        ratio={analysisResult.ratios.roa}
+                        trend="up"
+                      />
+                    )}
+                    {analysisResult.ratios.roe && (
+                      <RatioCard
+                        title="Рентабельность капитала (ROE)"
+                        ratio={analysisResult.ratios.roe}
+                        trend="up"
+                      />
+                    )}
+                    {analysisResult.ratios.ros && (
+                      <RatioCard
+                        title="Рентабельность продаж (ROS)"
+                        ratio={analysisResult.ratios.ros}
+                        trend="up"
+                      />
+                    )}
+                    {analysisResult.ratios.grossProfitMargin && (
+                      <RatioCard
+                        title="Рентабельность по валовой прибыли"
+                        ratio={analysisResult.ratios.grossProfitMargin}
+                        trend="up"
+                      />
+                    )}
+                    {analysisResult.ratios.operatingProfitMargin && (
+                      <RatioCard
+                        title="Рентабельность по прибыли от продаж"
+                        ratio={analysisResult.ratios.operatingProfitMargin}
+                        trend="up"
+                      />
+                    )}
+                    {analysisResult.ratios.netProfitMargin && (
+                      <RatioCard
+                        title="Рентабельность по чистой прибыли"
+                        ratio={analysisResult.ratios.netProfitMargin}
+                        trend="up"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* AI Analysis */}

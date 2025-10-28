@@ -92,6 +92,13 @@ export function RatioCard({ title, ratio, trend }: RatioCardProps) {
           <p className="text-sm">
             {ratio.description}
           </p>
+          {ratio.formula && (
+            <div className="mt-2 pt-2 border-t border-border">
+              <p className="text-xs font-mono text-muted-foreground" data-testid="text-formula">
+                {ratio.formula}
+              </p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

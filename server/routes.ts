@@ -114,7 +114,35 @@ function generateTextReport(result: FinancialAnalysisResult): string {
 ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ:
   Оборотный капитал              ${formatCurrency(result.ratios.workingCapital.value)}
   Соотношение долга к капиталу   ${formatRatio(result.ratios.debtToEquityRatio.value)}    [${result.ratios.debtToEquityRatio.status.toUpperCase()}]
+`;
 
+  // Add profitability ratios if available
+  if (result.ratios.roa || result.ratios.roe || result.ratios.grossProfitMargin || result.ratios.operatingProfitMargin || result.ratios.netProfitMargin) {
+    report += `
+ПОКАЗАТЕЛИ РЕНТАБЕЛЬНОСТИ:`;
+    
+    if (result.ratios.roa) {
+      report += `\n  ROA (Рентабельность активов)       ${(result.ratios.roa.value * 100).toFixed(2)}%    [${result.ratios.roa.status.toUpperCase()}]`;
+    }
+    if (result.ratios.roe) {
+      report += `\n  ROE (Рентабельность капитала)      ${(result.ratios.roe.value * 100).toFixed(2)}%    [${result.ratios.roe.status.toUpperCase()}]`;
+    }
+    if (result.ratios.ros) {
+      report += `\n  ROS (Рентабельность продаж)        ${(result.ratios.ros.value * 100).toFixed(2)}%    [${result.ratios.ros.status.toUpperCase()}]`;
+    }
+    if (result.ratios.grossProfitMargin) {
+      report += `\n  Рентабельность по валовой прибыли  ${(result.ratios.grossProfitMargin.value * 100).toFixed(2)}%    [${result.ratios.grossProfitMargin.status.toUpperCase()}]`;
+    }
+    if (result.ratios.operatingProfitMargin) {
+      report += `\n  Рентабельность по прибыли от продаж ${(result.ratios.operatingProfitMargin.value * 100).toFixed(2)}%    [${result.ratios.operatingProfitMargin.status.toUpperCase()}]`;
+    }
+    if (result.ratios.netProfitMargin) {
+      report += `\n  Рентабельность по чистой прибыли   ${(result.ratios.netProfitMargin.value * 100).toFixed(2)}%    [${result.ratios.netProfitMargin.status.toUpperCase()}]`;
+    }
+    report += '\n';
+  }
+
+  report += `
 ───────────────────────────────────────────────────────────────────────
 AI АНАЛИЗ
 ───────────────────────────────────────────────────────────────────────
