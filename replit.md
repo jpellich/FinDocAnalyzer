@@ -1,196 +1,72 @@
 # Financial Document Analysis Platform
 
-## Обзор проекта
+## Overview
+This project is a professional platform for intelligent financial document analysis using AI. It supports the upload of Excel (.xlsx, .xls), Word (.docx), and PDF files containing financial data. The platform automatically calculates key financial ratios and provides detailed analysis using OpenAI GPT-5, with a robust fallback to rule-based analysis. The business vision is to provide a comprehensive tool for financial professionals to quickly gain insights from various financial documents, enhancing decision-making and efficiency.
 
-Профессиональная платформа для интеллектуального анализа финансовых документов с использованием AI. Поддерживает загрузку Excel (.xlsx, .xls), Word (.docx) и PDF файлов с финансовыми данными и обеспечивает автоматический расчёт ключевых финансовых коэффициентов с детальным анализом от OpenAI GPT-5 (с fallback на rule-based анализ).
+## User Preferences
+I prefer simple language and clear, concise explanations.
+I want iterative development with frequent, small updates.
+Please ask before making any major architectural changes or introducing new external dependencies.
+I prefer detailed explanations for complex logic or decisions.
+Ensure all new UI components support both dark and light themes.
+All interactive elements should have `data-testid` attributes for easier testing.
 
-## Последние изменения
+## System Architecture
 
-**28 октября 2025** - Расширена поддержка форматов файлов
-- ✅ Добавлена поддержка парсинга DOCX файлов (mammoth)
-- ✅ Добавлена поддержка парсинга PDF файлов (pdf-parse)
-- ✅ Реализован универсальный document parser с dual parsing strategy:
-  - Multi-line формат: Поле → Код (4 цифры) → Значение (на отдельных строках)
-  - Single-line формат: Поле Код Значение1 Значение2 (на одной строке)
-- ✅ Улучшена обработка чисел: нули, отрицательные значения, скобки, разделители
-- ✅ Расширены списки синонимов для российской бухгалтерской отчётности
-- ✅ Протестировано на реальном DOCX файле бухгалтерской отчётности
-- ✅ Frontend обновлён для приёма всех форматов с валидацией
+### UI/UX Decisions
+The platform features a professional financial design with a consistent color palette:
+-   **Primary**: Blue (#2563eb) for accents and graphs.
+-   **Secondary**: Gray for secondary elements.
+-   **Success**: Emerald for positive indicators.
+-   **Warning**: Amber for warnings.
+-   **Destructive**: Red for critical indicators.
+Typography uses 'Inter' for text and UI, and 'JetBrains Mono' for financial figures. A consistent spacing system (2, 4, 6, 8, 12, 16, 20) is applied. The design is adaptive for all screen sizes and supports dark/light themes. Interactive elements utilize `hover-elevate` and `active-elevate-2` classes.
 
-**25 октября 2025** - Инициализация проекта
-- Создана схема данных для финансового анализа (shared/schema.ts)
-- Реализованы все основные компоненты frontend
-- Настроена дизайн-система с профессиональным финансовым стилем
-- Добавлена поддержка тёмной темы
-- Интегрирована библиотека Recharts для визуализации данных
+### Technical Implementations
+The platform supports drag-and-drop file uploads for .xlsx, .xls, .docx, and .pdf files (up to 10 MB).
+A universal document parser employs a dual parsing strategy:
+-   Multi-line format: "Field → Code (4 digits) → Value" on separate lines.
+-   Single-line format: "Field Code Value1 Value2" on one line.
+The parser includes robust number handling for zeros, negative values (minus and parentheses), and various thousands/decimal separators.
+Core financial calculations include liquidity ratios (current, quick, absolute) and financial stability indicators (autonomy, debt, financial leverage).
+AI analysis is integrated with OpenAI GPT-5, featuring a graceful fallback to rule-based analysis if the API encounters issues. Data validation is performed using Zod schemas.
 
-## Основные возможности
+### Feature Specifications
+-   **File Upload & Parsing**: Supports Excel, DOCX (via Mammoth), and PDF (via pdf-parse) with intelligent content extraction.
+-   **Financial Data Display**: Comprehensive display of the balance sheet (ASSETS/LIABILITIES with sections I-V) and Profit & Loss statement.
+-   **Ratio Calculation**: Automatic calculation and display of key financial ratios with color-coded status indicators (excellent/good/warning/critical).
+-   **AI Analysis**: A dedicated section for AI-generated insights, including strengths, weaknesses, and recommendations.
+-   **Data Visualization**: Interactive charts (bar, radar) using Recharts.
+-   **Report Export**: Export of detailed financial reports to TXT format, including balance sheet, ratios, and AI analysis.
+-   **User Interface**: Responsive design, professional financial styling, and dark/light theme support. Loading states include progress bars and stage indicators.
 
-### Реализованные функции
-- ✅ Drag-and-drop загрузка файлов (.xlsx, .xls, .docx, .pdf) - до 10 МБ
-- ✅ Парсинг Excel файлов с гибким поиском полей (server/excel-parser.ts)
-- ✅ Парсинг DOCX файлов с извлечением текста через mammoth
-- ✅ Парсинг PDF файлов с извлечением текста через pdf-parse
-- ✅ Универсальный document parser с dual parsing strategy
-- ✅ Предварительный просмотр загруженных финансовых данных
-- ✅ Расчёт и отображение коэффициентов ликвидности (текущей, быстрой, абсолютной)
-- ✅ Расчёт показателей финансовой устойчивости (автономии, задолженности, финансового рычага)
-- ✅ Интеграция с OpenAI GPT-5 для AI-анализа с graceful fallback
-- ✅ Секция AI-анализа с сильными сторонами, слабостями и рекомендациями
-- ✅ Интерактивная визуализация данных (столбчатые диаграммы, радар-чарт)
-- ✅ Красивые состояния загрузки с прогресс-баром и этапами обработки
-- ✅ Адаптивный дизайн для всех размеров экранов
-- ✅ Тёмная/светлая тема
+### System Design Choices
+-   **Frontend Framework**: React 18 with TypeScript, Vite for bundling, Tailwind CSS for styling, and shadcn/ui for UI components. Recharts is used for data visualization.
+-   **Backend Framework**: Express.js handles API routes for analysis, report generation, and health checks.
+-   **Data Storage**: In-memory storage (`MemStorage`) is used for temporary data handling.
+-   **API Endpoints**:
+    -   `POST /api/analyze`: Upload and analyze financial files.
+    -   `POST /api/download-report`: Generate and download TXT financial reports.
+    -   `GET /api/health`: Server health check.
 
-### В разработке
-- ⏳ Экспорт отчётов в PDF/Excel (будущее развитие)
-- ⏳ История анализов с сохранением
-- ⏳ Поддержка дополнительных форматов отчётности
-
-## Архитектура проекта
-
-### Структура данных (shared/schema.ts)
-- `FinancialData` - данные из загруженного Excel файла (активы, пассивы, капитал)
-- `FinancialRatios` - рассчитанные финансовые коэффициенты
-- `RatioWithStatus` - коэффициент с оценкой статуса (excellent/good/warning/critical)
-- `FinancialAnalysisResult` - полный результат анализа включая AI-выводы
-
-### Frontend компоненты
-
-**Основные компоненты:**
-- `Home` (pages/home.tsx) - главная страница приложения
-- `FileUpload` - компонент загрузки файлов с drag-and-drop
-- `DataPreview` - таблица предварительного просмотра данных
-- `RatioCard` - карточка финансового коэффициента с цветовой индикацией
-- `AIAnalysis` - секция AI-анализа с рекомендациями
-- `VisualizationCharts` - графики визуализации (Bar, Radar)
-- `LoadingModal` - модальное окно с прогрессом обработки
-
-**UI компоненты (shadcn):**
-- Все стандартные компоненты shadcn/ui доступны в `components/ui/`
-- Кастомизированы цвета для финансового стиля (синий primary, серый secondary)
-
-### Backend
-**API Routes (server/routes.ts):**
-- `POST /api/analyze` - загрузка и анализ финансовых файлов (.xlsx, .xls, .docx, .pdf)
-- `GET /api/template` - скачивание шаблона Excel файла
-
-**Парсеры:**
-- `excel-parser.ts` - парсинг Excel с гибким поиском полей, синонимами и нормализацией
-- `document-parser.ts` - универсальный парсер DOCX/PDF с dual parsing:
-  - Multi-line: "Поле → Код (4 цифры) → Значение" на разных строках
-  - Single-line: "Поле Код Значение1 Значение2" на одной строке
-  - Автоматический fallback между стратегиями
-  
-**Обработка чисел:**
-- Поддержка нулевых значений
-- Отрицательные числа (минус и в скобках)
-- Разделители тысяч (пробелы, запятые, неразрывные пробелы)
-- Десятичные разделители
-
-**Финансовый калькулятор (server/financial-calculator.ts):**
-- Коэффициенты ликвидности (текущей, быстрой, абсолютной)
-- Коэффициенты финансовой устойчивости (автономии, задолженности, финансового рычага)
-- Рентабельность собственного капитала (ROE)
-
-**OpenAI интеграция (server/openai.ts):**
-- Генерация AI-анализа через GPT-5
-- Graceful fallback на rule-based анализ при ошибках API
-- Валидация данных с использованием Zod схем
-
-## Технологический стек
+## External Dependencies
 
 ### Frontend
-- **React 18** - UI библиотека
-- **TypeScript** - типизация
-- **Vite** - сборщик и dev server
-- **Tailwind CSS** - стилизация
-- **shadcn/ui** - компонентная библиотека
-- **Recharts** - визуализация данных
-- **React Query** - управление состоянием и запросами
-- **Wouter** - маршрутизация
-- **Lucide React** - иконки
+-   **React 18**: UI library.
+-   **TypeScript**: Type safety.
+-   **Vite**: Build tool and dev server.
+-   **Tailwind CSS**: Utility-first CSS framework.
+-   **shadcn/ui**: Component library.
+-   **Recharts**: Data visualization library.
+-   **React Query**: Data fetching and state management.
+-   **Wouter**: Client-side routing.
+-   **Lucide React**: Icon library.
 
 ### Backend
-- **Express.js** - веб-сервер
-- **Multer** - загрузка файлов (до 10 МБ)
-- **XLSX** - парсинг Excel файлов (.xlsx, .xls)
-- **Mammoth** - извлечение текста из DOCX файлов
-- **pdf-parse** - извлечение текста из PDF файлов
-- **OpenAI SDK** - интеграция с GPT-5 (с fallback)
-- **Zod** - валидация данных
-
-## Дизайн система
-
-### Цветовая палитра
-- **Primary**: Синий (#2563eb) - для кнопок, акцентов, графиков
-- **Secondary**: Серый - для вторичных элементов
-- **Success**: Изумрудный - для положительных показателей
-- **Warning**: Янтарный - для предупреждений
-- **Destructive**: Красный - для критических показателей
-
-### Типографика
-- **Sans**: Inter - основной шрифт для текста и UI
-- **Mono**: JetBrains Mono - для финансовых цифр и данных
-
-### Spacing
-Используется консистентная система отступов:
-- Micro (UI elements): 2, 4
-- Component spacing: 6, 8
-- Section padding: 12, 16, 20
-
-## API секреты
-
-### Переменные окружения
-- `OPENAI_API_KEY` - ключ API для OpenAI (настроен через Replit Secrets)
-
-## Инструкции по разработке
-
-### Запуск проекта
-```bash
-npm run dev
-```
-Запускает Express сервер (backend) и Vite dev server (frontend) на одном порту.
-
-### Установка зависимостей
-Используйте packager_tool вместо прямого `npm install`.
-
-### Стилевые правила
-- Следовать design_guidelines.md для всех UI изменений
-- Использовать существующие shadcn компоненты
-- Применять классы hover-elevate и active-elevate-2 для интерактивных элементов
-- Обеспечивать контраст для тёмной темы
-- Все интерактивные элементы должны иметь data-testid атрибуты
-
-### Работа с формами
-- Использовать react-hook-form через shadcn Form компоненты
-- Валидировать с помощью zod schemas из shared/schema.ts
-- Показывать понятные сообщения об ошибках
-
-## Roadmap
-
-### Фаза 1: MVP (завершена ✅)
-- ✅ Frontend компоненты и дизайн
-- ✅ Backend обработка Excel, DOCX и PDF файлов
-- ✅ Интеграция OpenAI с fallback механизмом
-- ✅ Подключение frontend к backend
-- ✅ End-to-end тестирование с реальными документами
-
-### Фаза 2: Расширенные возможности
-- Расчёт показателей рентабельности и деловой активности
-- Сравнительный анализ нескольких периодов
-- Экспорт отчётов в PDF и DOCX
-- История анализов с сохранением
-
-### Фаза 3: Продвинутые функции
-- Прогнозирование финансовых показателей с AI
-- Шаблоны для разных типов отчётности
-- Бенчмаркинг по отраслям
-- Командная работа и комментарии
-
-## Примечания
-
-- Проект использует in-memory хранилище (MemStorage) согласно fullstack_js guidelines
-- Дизайн оптимизирован для профессионального финансового использования
-- Все компоненты адаптивны и работают на мобильных устройствах
-- Поддержка тёмной темы обязательна для всех новых компонентов
+-   **Express.js**: Web server framework.
+-   **Multer**: Middleware for handling `multipart/form-data` (file uploads).
+-   **XLSX**: Library for parsing Excel files.
+-   **Mammoth**: Library for extracting text from DOCX files.
+-   **pdf-parse**: Library for extracting text from PDF files.
+-   **OpenAI SDK**: Integration with OpenAI GPT-5 for AI analysis.
+-   **Zod**: Schema declaration and validation library.
