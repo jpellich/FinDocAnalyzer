@@ -74,55 +74,99 @@ function parseNumericValue(str: string): number | null {
 
 /**
  * Parse financial data from text content
- * Looks for common patterns in Russian financial statements
+ * Supports two document layouts:
+ * 1. Multi-line: Field name → Code (4 digits) → Value (on separate lines)
+ * 2. Single-line: Field name Code Value1 Value2 ... (all on one line)
  */
 function parseFinancialDataFromText(text: string): FinancialData {
-  const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+  const lines = text.split('\n').map(line => line.trim());
+  const nonEmptyLines: string[] = [];
+  
+  // Filter out empty lines while preserving order
+  for (const line of lines) {
+    if (line) {
+      nonEmptyLines.push(line);
+    }
+  }
   
   // Create a map to store found values
   const dataMap = new Map<string, number>();
   const foundKeys: string[] = [];
 
-  // Pattern to match: "Name of item" followed by numbers (possibly with spaces/parentheses)
-  const patterns = [
+  // Pattern to detect 4-digit codes (used to identify multi-line structure)
+  const codePattern = /^\d{4}$/;
+  
+  // Single-line patterns for when data is all on one line
+  const singleLinePatterns = [
     // Pattern: "Item name" Code Value1 Value2 Value3 (with potential parentheses and separators)
     /^(.+?)\s+(\d{4})\s+([\d\s,.()\-+]+?)(?:\s+([\d\s,.()\-+]+?))?(?:\s+([\d\s,.()\-+]+?))?$/,
     // Pattern: "Item name" Value (with potential parentheses and separators)
     /^(.+?)\s+([\d\s,.()\-+]{3,})$/,
   ];
-
-  for (const line of lines) {
-    // Try each pattern
-    for (const pattern of patterns) {
-      const match = line.match(pattern);
-      if (match) {
-        const itemName = match[1].trim();
-        // Get the first numeric value (most recent period)
-        const valueStr = match[3] || match[2];
-        const value = parseNumericValue(valueStr);
-        
-        // Accept any valid number, including zero and negative
-        if (value !== null && !isNaN(value)) {
-          const normalizedKey = normalizeKey(itemName);
-          if (normalizedKey) {
-            dataMap.set(normalizedKey, value);
-            foundKeys.push(itemName);
-          }
+  
+  // Strategy 1: Try multi-line parsing (Field → Code → Value on separate lines)
+  for (let i = 0; i < nonEmptyLines.length; i++) {
+    const currentLine = nonEmptyLines[i];
+    const normalizedCurrent = normalizeKey(currentLine);
+    
+    // Skip if this looks like a code line itself
+    if (codePattern.test(currentLine)) {
+      continue;
+    }
+    
+    // Check if next line is a code (4 digits)
+    if (i + 2 < nonEmptyLines.length && codePattern.test(nonEmptyLines[i + 1])) {
+      // Next line is code, so line after that should be the value
+      const valueStr = nonEmptyLines[i + 2];
+      const value = parseNumericValue(valueStr);
+      
+      // Accept any valid number, including zero and negative
+      if (value !== null && !isNaN(value)) {
+        if (normalizedCurrent) {
+          dataMap.set(normalizedCurrent, value);
+          foundKeys.push(currentLine);
         }
-        break;
+      }
+    }
+  }
+  
+  // Strategy 2: Fall back to single-line parsing if multi-line found nothing
+  if (foundKeys.length === 0) {
+    console.log('Multi-line parsing found no fields, falling back to single-line parsing');
+    
+    for (const line of nonEmptyLines) {
+      // Try each single-line pattern
+      for (const pattern of singleLinePatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          const itemName = match[1].trim();
+          // Get the first numeric value (most recent period)
+          const valueStr = match[3] || match[2];
+          const value = parseNumericValue(valueStr);
+          
+          // Accept any valid number, including zero and negative
+          if (value !== null && !isNaN(value)) {
+            const normalizedKey = normalizeKey(itemName);
+            if (normalizedKey) {
+              dataMap.set(normalizedKey, value);
+              foundKeys.push(itemName);
+            }
+          }
+          break;
+        }
       }
     }
   }
 
-  console.log('Найдены следующие поля в документе:', foundKeys.slice(0, 20));
+  console.log(`Найдены следующие поля в документе (${foundKeys.length} полей):`, foundKeys.slice(0, 30));
 
   // Map the parsed data to our FinancialData structure
   const financialData: FinancialData = {
     currentAssets: findValue(dataMap, foundKeys, [
+      "итого по разделу ii",
       "ii оборотные активы",
       "оборотные активы",
       "оборотные активы всего",
-      "итого по разделу ii",
       "current assets",
       "текущие активы",
     ]),
@@ -163,9 +207,9 @@ function parseFinancialDataFromText(text: string): FinancialData {
       "итого активов"
     ]),
     currentLiabilities: findValue(dataMap, foundKeys, [
+      "итого по разделу v",
       "v краткосрочные обязательства",
       "краткосрочные обязательства",
-      "итого по разделу v",
       "current liabilities",
       "текущие обязательства",
     ]),
@@ -185,18 +229,18 @@ function parseFinancialDataFromText(text: string): FinancialData {
       "итого обязательств"
     ]),
     equity: findValue(dataMap, foundKeys, [
+      "итого по разделу iii",
       "iii капитал и резервы",
       "капитал и резервы",
-      "итого по разделу iii",
       "собственный капитал",
       "equity",
       "капитал",
       "собственные средства"
     ]),
     longTermDebt: findValue(dataMap, foundKeys, [
+      "итого по разделу iv",
       "iv долгосрочные обязательства",
       "долгосрочные обязательства",
-      "итого по разделу iv",
       "долгосрочные заемные средства",
       "долгосрочный долг",
       "long term debt"
