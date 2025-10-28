@@ -69,7 +69,7 @@ export function DataPreview({ data }: DataPreviewProps) {
         { label: "Заемные средства", value: data.shortTermDebt, indent: 1 },
         { 
           label: "БАЛАНС (ПАССИВ)", 
-          value: data.totalLiabilities + data.equity, 
+          value: data.equity + data.longTermDebt + data.currentLiabilities, 
           indent: 0, 
           bold: true, 
           highlight: true 

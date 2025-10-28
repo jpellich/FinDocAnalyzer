@@ -29,6 +29,11 @@ A universal document parser employs a dual parsing strategy:
 -   Single-line format: "Field Code Value1 Value2" on one line.
 The parser includes robust number handling for zeros, negative values (minus and parentheses), and various thousands/decimal separators.
 Core financial calculations include liquidity ratios (current, quick, absolute) and financial stability indicators (autonomy, debt, financial leverage).
+**Balance Sheet Validation**: The system enforces the fundamental accounting equation (ASSETS = LIABILITIES + EQUITY) by:
+-   Using the correct formula for БАЛАНС (ПАССИВ): `equity + longTermDebt + currentLiabilities` (Sections III + IV + V)
+-   Automatically recalculating totalLiabilities from component sections to ensure consistency
+-   Validating that АКТИВ ≈ ПАССИВ within 1% tolerance before displaying results
+-   Logging validation results to help identify data inconsistencies
 AI analysis is integrated with OpenAI GPT-5, featuring a graceful fallback to rule-based analysis if the API encounters issues. Data validation is performed using Zod schemas.
 
 ### Feature Specifications

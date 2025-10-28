@@ -4,7 +4,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { parseExcelFile, generateSampleTemplate } from "./excel-parser";
 import { parseDocumentFile } from "./document-parser";
-import { calculateFinancialRatios, evaluateRatios } from "./financial-calculator";
+import { calculateFinancialRatios, evaluateRatios, validateAndNormalizeFinancialData } from "./financial-calculator";
 import { generateFinancialAnalysis } from "./openai";
 import type { FinancialAnalysisResult } from "@shared/schema";
 
@@ -75,7 +75,7 @@ function generateTextReport(result: FinancialAnalysisResult): string {
   V. Краткосрочные обязательства ${formatCurrency(result.data.currentLiabilities)}
     - Заемные средства           ${formatCurrency(result.data.shortTermDebt)}
   
-  БАЛАНС (ПАССИВ)                ${formatCurrency(result.data.totalLiabilities + result.data.equity)}
+  БАЛАНС (ПАССИВ)                ${formatCurrency(result.data.equity + result.data.longTermDebt + result.data.currentLiabilities)}
 
 `;
 
@@ -172,27 +172,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Неподдерживаемый формат файла");
       }
 
-      // Step 2: Calculate financial ratios
-      const ratios = calculateFinancialRatios(financialData);
+      // Step 2: Validate and normalize financial data
+      const normalizedData = validateAndNormalizeFinancialData(financialData);
+      console.log("✓ Financial data validated and normalized");
+
+      // Step 3: Calculate financial ratios
+      const ratios = calculateFinancialRatios(normalizedData);
       console.log("✓ Financial ratios calculated");
 
-      // Step 3: Evaluate ratios and assign status
+      // Step 4: Evaluate ratios and assign status
       const evaluatedRatios = evaluateRatios(ratios);
       console.log("✓ Ratios evaluated");
 
-      // Step 4: Generate AI analysis
-      const aiAnalysis = await generateFinancialAnalysis(financialData, ratios);
+      // Step 5: Generate AI analysis
+      const aiAnalysis = await generateFinancialAnalysis(normalizedData, ratios);
       console.log("✓ AI analysis generated");
 
-      // Step 5: Create complete analysis result
+      // Step 6: Create complete analysis result
       const analysisResult: FinancialAnalysisResult = {
-        data: financialData,
+        data: normalizedData,
         ratios: evaluatedRatios,
         aiAnalysis,
         timestamp: new Date().toISOString(),
       };
 
-      // Step 6: Save analysis to storage
+      // Step 7: Save analysis to storage
       const saved = await storage.saveAnalysis(analysisResult);
       console.log(`✓ Analysis saved with ID: ${saved.id}`);
 

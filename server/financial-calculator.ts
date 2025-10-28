@@ -1,6 +1,42 @@
 import type { FinancialData, FinancialRatios, RatioWithStatus, RatioStatus } from "@shared/schema";
 
 /**
+ * Validate and normalize financial data to ensure accounting equation holds:
+ * ASSETS = EQUITY + LIABILITIES
+ * 
+ * This function:
+ * 1. Recalculates totalLiabilities from components (longTermDebt + currentLiabilities)
+ * 2. Validates that totalAssets ≈ equity + totalLiabilities (within 1% tolerance)
+ * 3. Returns normalized data with corrected values
+ */
+export function validateAndNormalizeFinancialData(data: FinancialData): FinancialData {
+  // Recalculate totalLiabilities from sections IV + V
+  const calculatedTotalLiabilities = data.longTermDebt + data.currentLiabilities;
+  
+  // Calculate passive (equity + liabilities) - this should equal totalAssets
+  const calculatedPassive = data.equity + calculatedTotalLiabilities;
+  
+  // Check if accounting equation holds (with 1% tolerance for rounding)
+  const difference = Math.abs(data.totalAssets - calculatedPassive);
+  const tolerance = data.totalAssets * 0.01; // 1% tolerance
+  
+  if (difference > tolerance) {
+    console.warn(`⚠️ Бухгалтерское уравнение не сошлось:`);
+    console.warn(`   АКТИВ: ${data.totalAssets.toFixed(2)}`);
+    console.warn(`   ПАССИВ: ${calculatedPassive.toFixed(2)}`);
+    console.warn(`   Разница: ${difference.toFixed(2)} (${(difference / data.totalAssets * 100).toFixed(2)}%)`);
+  } else {
+    console.log(`✓ Бухгалтерское уравнение сошлось: АКТИВ = ПАССИВ = ${data.totalAssets.toFixed(2)}`);
+  }
+  
+  // Return normalized data with corrected totalLiabilities
+  return {
+    ...data,
+    totalLiabilities: calculatedTotalLiabilities
+  };
+}
+
+/**
  * Calculate all financial ratios from the provided financial data
  */
 export function calculateFinancialRatios(data: FinancialData): FinancialRatios {
