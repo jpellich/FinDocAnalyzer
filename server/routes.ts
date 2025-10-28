@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
 import { parseExcelFile, generateSampleTemplate } from "./excel-parser";
+import { parseDocumentFile } from "./document-parser";
 import { calculateFinancialRatios, evaluateRatios } from "./financial-calculator";
 import { generateFinancialAnalysis } from "./openai";
 import type { FinancialAnalysisResult } from "@shared/schema";
@@ -17,12 +18,14 @@ const upload = multer({
     const allowedMimes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/pdf",
     ];
     
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Только Excel файлы (.xlsx, .xls) разрешены"));
+      cb(new Error("Только Excel (.xlsx, .xls), Word (.docx) и PDF файлы разрешены"));
     }
   },
 });
@@ -33,15 +36,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.file) {
         return res.status(400).json({ 
-          error: "Файл не загружен. Пожалуйста, загрузите Excel файл." 
+          error: "Файл не загружен. Пожалуйста, загрузите файл Excel (.xlsx, .xls), Word (.docx) или PDF." 
         });
       }
 
-      console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+      console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes, ${req.file.mimetype})`);
 
-      // Step 1: Parse Excel file
-      const financialData = parseExcelFile(req.file.buffer);
-      console.log("✓ Excel file parsed successfully");
+      // Step 1: Parse file based on type
+      let financialData;
+      
+      if (
+        req.file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        req.file.mimetype === "application/vnd.ms-excel"
+      ) {
+        financialData = parseExcelFile(req.file.buffer);
+        console.log("✓ Excel file parsed successfully");
+      } else if (
+        req.file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        req.file.mimetype === "application/pdf"
+      ) {
+        financialData = await parseDocumentFile(req.file.buffer, req.file.mimetype);
+        console.log("✓ Document file parsed successfully");
+      } else {
+        throw new Error("Неподдерживаемый формат файла");
+      }
 
       // Step 2: Calculate financial ratios
       const ratios = calculateFinancialRatios(financialData);

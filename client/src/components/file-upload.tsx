@@ -18,10 +18,12 @@ export function FileUpload({ onFileSelect, isProcessing }: FileUploadProps) {
     const validTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/pdf",
     ];
 
     if (!validTypes.includes(file.type)) {
-      return "Пожалуйста, загрузите файл Excel (.xlsx или .xls)";
+      return "Пожалуйста, загрузите файл Excel (.xlsx, .xls), Word (.docx) или PDF";
     }
 
     if (file.size > 10 * 1024 * 1024) {
@@ -112,7 +114,7 @@ export function FileUpload({ onFileSelect, isProcessing }: FileUploadProps) {
           type="file"
           id="file-upload"
           className="hidden"
-          accept=".xlsx,.xls"
+          accept=".xlsx,.xls,.docx,.pdf"
           onChange={handleChange}
           disabled={isProcessing}
           data-testid="input-file-upload"
@@ -133,13 +135,16 @@ export function FileUpload({ onFileSelect, isProcessing }: FileUploadProps) {
                   Загрузите финансовый документ
                 </h3>
                 <p className="text-muted-foreground max-w-md">
-                  Перетащите файл Excel сюда или нажмите для выбора
+                  Перетащите файл сюда или нажмите для выбора
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>Поддерживаются форматы .xlsx, .xls</span>
+              <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>Поддерживаются форматы:</span>
+                </div>
+                <span className="font-medium">.xlsx, .xls, .docx, .pdf</span>
               </div>
 
               <div className="text-xs text-muted-foreground">
