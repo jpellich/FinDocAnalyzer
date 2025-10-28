@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Upload, FileSpreadsheet, X, AlertCircle, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -93,10 +93,6 @@ export function FileUpload({ onFileSelect, isProcessing }: FileUploadProps) {
     }
   }, [selectedFile, onFileSelect]);
 
-  const handleDownloadTemplate = useCallback(() => {
-    window.open("/api/template", "_blank");
-  }, []);
-
   return (
     <div className="space-y-6">
       <Card
@@ -150,21 +146,6 @@ export function FileUpload({ onFileSelect, isProcessing }: FileUploadProps) {
               <div className="text-xs text-muted-foreground">
                 Максимальный размер файла: 10 МБ
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleDownloadTemplate();
-                }}
-                data-testid="button-download-template"
-                className="hover-elevate active-elevate-2"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Скачать шаблон Excel
-              </Button>
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-6 w-full">

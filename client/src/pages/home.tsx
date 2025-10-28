@@ -99,6 +99,46 @@ export default function Home() {
     setProcessingStage("");
   };
 
+  const handleDownloadReport = async () => {
+    if (!analysisResult) return;
+
+    try {
+      const response = await fetch("/api/download-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(analysisResult),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка при генерации отчёта");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `financial-report-${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Отчёт скачан",
+        description: "Файл успешно сохранён на вашем устройстве",
+      });
+    } catch (error) {
+      console.error("Error downloading report:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось скачать отчёт",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -171,6 +211,7 @@ export default function Home() {
               </div>
               <Button
                 variant="default"
+                onClick={handleDownloadReport}
                 data-testid="button-download"
                 className="hover-elevate active-elevate-2"
               >

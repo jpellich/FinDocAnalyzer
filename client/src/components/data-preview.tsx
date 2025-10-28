@@ -15,53 +15,120 @@ export function DataPreview({ data }: DataPreviewProps) {
     }).format(value);
   };
 
-  const rows = [
-    { label: "Оборотные активы", value: data.currentAssets, category: "assets" },
-    { label: "Денежные средства и эквиваленты", value: data.cashAndEquivalents, category: "assets" },
-    { label: "Краткосрочные инвестиции", value: data.shortTermInvestments, category: "assets" },
-    { label: "Дебиторская задолженность", value: data.accountsReceivable, category: "assets" },
-    { label: "Запасы", value: data.inventory, category: "assets" },
-    { label: "Всего активов", value: data.totalAssets, category: "assets", highlight: true },
-    { label: "Краткосрочные обязательства", value: data.currentLiabilities, category: "liabilities" },
-    { label: "Краткосрочный долг", value: data.shortTermDebt, category: "liabilities" },
-    { label: "Всего обязательств", value: data.totalLiabilities, category: "liabilities", highlight: true },
-    { label: "Собственный капитал", value: data.equity, category: "equity", highlight: true },
-    { label: "Долгосрочный долг", value: data.longTermDebt, category: "liabilities" },
+  // Структурированное отображение бухгалтерского баланса
+  const balanceSheet = [
+    {
+      section: "АКТИВ",
+      items: [
+        { 
+          subsection: "I. Внеоборотные активы",
+          value: data.totalAssets - data.currentAssets,
+          indent: 0,
+          bold: true
+        },
+        {
+          subsection: "II. Оборотные активы",
+          value: data.currentAssets,
+          indent: 0,
+          bold: true
+        },
+        { label: "Запасы", value: data.inventory, indent: 1 },
+        { label: "Дебиторская задолженность", value: data.accountsReceivable, indent: 1 },
+        { label: "Финансовые вложения (краткосрочные)", value: data.shortTermInvestments, indent: 1 },
+        { label: "Денежные средства и эквиваленты", value: data.cashAndEquivalents, indent: 1 },
+        { 
+          label: "БАЛАНС (АКТИВ)", 
+          value: data.totalAssets, 
+          indent: 0, 
+          bold: true, 
+          highlight: true 
+        },
+      ]
+    },
+    {
+      section: "ПАССИВ",
+      items: [
+        {
+          subsection: "III. Капитал и резервы",
+          value: data.equity,
+          indent: 0,
+          bold: true
+        },
+        {
+          subsection: "IV. Долгосрочные обязательства",
+          value: data.longTermDebt,
+          indent: 0,
+          bold: true
+        },
+        {
+          subsection: "V. Краткосрочные обязательства",
+          value: data.currentLiabilities,
+          indent: 0,
+          bold: true
+        },
+        { label: "Заемные средства", value: data.shortTermDebt, indent: 1 },
+        { 
+          label: "БАЛАНС (ПАССИВ)", 
+          value: data.totalLiabilities + data.equity, 
+          indent: 0, 
+          bold: true, 
+          highlight: true 
+        },
+      ]
+    }
   ];
 
-  if (data.revenue) {
-    rows.push({ label: "Выручка", value: data.revenue, category: "income" });
+  // Отчёт о прибылях и убытках (если есть данные)
+  const incomeStatement = [];
+  if (data.revenue || data.netIncome || data.operatingIncome) {
+    incomeStatement.push({
+      section: "ОТЧЁТ О ПРИБЫЛЯХ И УБЫТКАХ",
+      items: [
+        data.revenue ? { label: "Выручка", value: data.revenue, indent: 0, bold: true } : null,
+        data.operatingIncome ? { label: "Прибыль от продаж", value: data.operatingIncome, indent: 0 } : null,
+        data.netIncome ? { label: "Чистая прибыль (убыток)", value: data.netIncome, indent: 0, bold: true, highlight: true } : null,
+      ].filter(Boolean)
+    });
   }
-  if (data.netIncome) {
-    rows.push({ label: "Чистая прибыль", value: data.netIncome, category: "income" });
-  }
+
+  const allSections = [...balanceSheet, ...incomeStatement];
 
   return (
     <Card data-testid="card-data-preview">
       <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
         <CardTitle className="text-xl font-semibold">
-          Загруженные данные
+          Бухгалтерский баланс
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-1">
-            {rows.map((row, index) => (
-              <div
-                key={index}
-                className={`flex justify-between items-center py-3 px-4 rounded-md transition-colors ${
-                  row.highlight
-                    ? "bg-muted font-semibold"
-                    : "hover-elevate"
-                }`}
-                data-testid={`row-data-${index}`}
-              >
-                <span className={row.highlight ? "font-semibold" : "text-sm"}>
-                  {row.label}
-                </span>
-                <span className="font-mono">
-                  {formatCurrency(row.value)}
-                </span>
+        <ScrollArea className="h-[500px] pr-4">
+          <div className="space-y-6">
+            {allSections.map((section, sectionIndex) => (
+              <div key={sectionIndex} className="space-y-1">
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-2 border-b">
+                  {section.section}
+                </div>
+                {section.items.map((item: any, itemIndex) => (
+                  <div
+                    key={itemIndex}
+                    className={`flex justify-between items-center py-2.5 px-4 rounded-md transition-colors ${
+                      item.highlight
+                        ? "bg-primary/10 border border-primary/20"
+                        : item.bold
+                        ? "bg-muted/50"
+                        : "hover-elevate"
+                    }`}
+                    style={{ paddingLeft: `${1 + item.indent * 1.5}rem` }}
+                    data-testid={`row-data-${sectionIndex}-${itemIndex}`}
+                  >
+                    <span className={`${item.bold ? "font-semibold" : "text-sm"} ${item.subsection ? "text-sm" : ""}`}>
+                      {item.label || item.subsection}
+                    </span>
+                    <span className={`font-mono ${item.bold ? "font-semibold" : ""}`}>
+                      {formatCurrency(item.value)}
+                    </span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>

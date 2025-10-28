@@ -30,6 +30,117 @@ const upload = multer({
   },
 });
 
+// Generate text report from analysis result
+function generateTextReport(result: FinancialAnalysisResult): string {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("ru-RU", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatRatio = (value: number) => {
+    return value.toFixed(2);
+  };
+
+  const date = new Date(result.timestamp).toLocaleString("ru-RU");
+  
+  let report = `═══════════════════════════════════════════════════════════════════════
+ФИНАНСОВЫЙ ОТЧЁТ
+═══════════════════════════════════════════════════════════════════════
+
+Дата формирования: ${date}
+
+───────────────────────────────────────────────────────────────────────
+БУХГАЛТЕРСКИЙ БАЛАНС
+───────────────────────────────────────────────────────────────────────
+
+АКТИВ:
+  I. Внеоборотные активы         ${formatCurrency(result.data.totalAssets - result.data.currentAssets)}
+  
+  II. Оборотные активы           ${formatCurrency(result.data.currentAssets)}
+    - Запасы                     ${formatCurrency(result.data.inventory)}
+    - Дебиторская задолженность  ${formatCurrency(result.data.accountsReceivable)}
+    - Финансовые вложения        ${formatCurrency(result.data.shortTermInvestments)}
+    - Денежные средства          ${formatCurrency(result.data.cashAndEquivalents)}
+  
+  БАЛАНС (АКТИВ)                 ${formatCurrency(result.data.totalAssets)}
+
+ПАССИВ:
+  III. Капитал и резервы         ${formatCurrency(result.data.equity)}
+  
+  IV. Долгосрочные обязательства ${formatCurrency(result.data.longTermDebt)}
+  
+  V. Краткосрочные обязательства ${formatCurrency(result.data.currentLiabilities)}
+    - Заемные средства           ${formatCurrency(result.data.shortTermDebt)}
+  
+  БАЛАНС (ПАССИВ)                ${formatCurrency(result.data.totalLiabilities + result.data.equity)}
+
+`;
+
+  if (result.data.revenue || result.data.netIncome) {
+    report += `───────────────────────────────────────────────────────────────────────
+ОТЧЁТ О ПРИБЫЛЯХ И УБЫТКАХ
+───────────────────────────────────────────────────────────────────────
+
+`;
+    if (result.data.revenue) {
+      report += `  Выручка                        ${formatCurrency(result.data.revenue)}\n`;
+    }
+    if (result.data.operatingIncome) {
+      report += `  Прибыль от продаж              ${formatCurrency(result.data.operatingIncome)}\n`;
+    }
+    if (result.data.netIncome) {
+      report += `  Чистая прибыль (убыток)        ${formatCurrency(result.data.netIncome)}\n`;
+    }
+    report += '\n';
+  }
+
+  report += `───────────────────────────────────────────────────────────────────────
+ФИНАНСОВЫЕ КОЭФФИЦИЕНТЫ
+───────────────────────────────────────────────────────────────────────
+
+КОЭФФИЦИЕНТЫ ЛИКВИДНОСТИ:
+  Текущей ликвидности            ${formatRatio(result.ratios.currentRatio.value)}    [${result.ratios.currentRatio.status.toUpperCase()}]
+  Быстрой ликвидности            ${formatRatio(result.ratios.quickRatio.value)}    [${result.ratios.quickRatio.status.toUpperCase()}]
+  Абсолютной ликвидности         ${formatRatio(result.ratios.cashRatio.value)}    [${result.ratios.cashRatio.status.toUpperCase()}]
+
+ПОКАЗАТЕЛИ ФИНАНСОВОЙ УСТОЙЧИВОСТИ:
+  Коэффициент автономии          ${formatRatio(result.ratios.equityRatio.value)}    [${result.ratios.equityRatio.status.toUpperCase()}]
+  Коэффициент задолженности      ${formatRatio(result.ratios.debtRatio.value)}    [${result.ratios.debtRatio.status.toUpperCase()}]
+  Финансовый рычаг               ${formatRatio(result.ratios.financialLeverageRatio.value)}    [${result.ratios.financialLeverageRatio.status.toUpperCase()}]
+
+ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ:
+  Оборотный капитал              ${formatCurrency(result.ratios.workingCapital.value)}
+  Соотношение долга к капиталу   ${formatRatio(result.ratios.debtToEquityRatio.value)}    [${result.ratios.debtToEquityRatio.status.toUpperCase()}]
+
+───────────────────────────────────────────────────────────────────────
+AI АНАЛИЗ
+───────────────────────────────────────────────────────────────────────
+
+РЕЗЮМЕ:
+${result.aiAnalysis.summary}
+
+УРОВЕНЬ РИСКА: ${result.aiAnalysis.riskLevel.toUpperCase()}
+
+СИЛЬНЫЕ СТОРОНЫ:
+${result.aiAnalysis.strengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+СЛАБЫЕ СТОРОНЫ:
+${result.aiAnalysis.weaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
+
+РЕКОМЕНДАЦИИ:
+${result.aiAnalysis.recommendations.map((r, i) => `  ${i + 1}. ${r}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════
+Конец отчёта
+═══════════════════════════════════════════════════════════════════════
+`;
+
+  return report;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/analyze - Upload and analyze Excel file
   app.post("/api/analyze", upload.single("file"), async (req, res) => {
@@ -144,6 +255,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error retrieving analyses:", error);
       res.status(500).json({ 
         error: "Не удалось получить список анализов" 
+      });
+    }
+  });
+
+  // POST /api/download-report - Generate and download financial report
+  app.post("/api/download-report", async (req, res) => {
+    try {
+      const analysisResult: FinancialAnalysisResult = req.body;
+      
+      if (!analysisResult || !analysisResult.data || !analysisResult.ratios) {
+        return res.status(400).json({ 
+          error: "Недостаточно данных для генерации отчёта" 
+        });
+      }
+
+      // Generate text report
+      const report = generateTextReport(analysisResult);
+      
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=financial-report-${new Date().toISOString().split('T')[0]}.txt`
+      );
+      
+      res.send(report);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      res.status(500).json({ 
+        error: "Не удалось создать отчёт" 
       });
     }
   });
