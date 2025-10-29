@@ -213,6 +213,41 @@ function parseFinancialDataFromText(text: string): FinancialData {
     }
   }
   
+  // Extract OKVED code and company name from document header (first 30 lines)
+  let okved: string | undefined;
+  let companyName: string | undefined;
+  
+  const headerLines = nonEmptyLines.slice(0, 30);
+  for (const line of headerLines) {
+    // Search for OKVED code: "ОКВЭД: 46.51", "Код по ОКВЭД: 46.51", etc.
+    if (!okved) {
+      const okvedMatch = line.match(/(?:оквэд|okved)[:\s]+([0-9.]+)/i);
+      if (okvedMatch) {
+        okved = okvedMatch[1].trim();
+        console.log(`Found OKVED: ${okved}`);
+      }
+    }
+    
+    // Search for company name: "Организация:", "Наименование:", lines with quotes, etc.
+    if (!companyName) {
+      const companyMatch = line.match(/(?:организация|наименование|компания|предприятие)[:\s]+(.+)/i);
+      if (companyMatch) {
+        companyName = companyMatch[1].trim().replace(/[\"«»]/g, '');
+        console.log(`Found company name: ${companyName}`);
+      } else if (line.includes('"') || line.includes('«')) {
+        // Try to extract quoted text as company name
+        const quotedMatch = line.match(/[\"«]([^\"»]+)[\"»]/);
+        if (quotedMatch && quotedMatch[1].length > 3 && quotedMatch[1].length < 100) {
+          companyName = quotedMatch[1].trim();
+          console.log(`Found company name from quotes: ${companyName}`);
+        }
+      }
+    }
+    
+    // Stop early if both found
+    if (okved && companyName) break;
+  }
+  
   // Create a map to store found values
   const dataMap = new Map<string, number>();
   const foundKeys: string[] = [];
@@ -286,6 +321,10 @@ function parseFinancialDataFromText(text: string): FinancialData {
 
   // Map the parsed data to our FinancialData structure
   const financialData: FinancialData = {
+    // Company information
+    okved,
+    companyName,
+    
     currentAssets: findValue(dataMap, foundKeys, [
       "итого по разделу ii",
       "ii оборотные активы",

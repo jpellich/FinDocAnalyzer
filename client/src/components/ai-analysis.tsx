@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, CheckCircle2, AlertCircle, Lightbulb, ShieldAlert } from "lucide-react";
+import { Sparkles, CheckCircle2, AlertCircle, Lightbulb, ShieldAlert, TrendingUp, Building2 } from "lucide-react";
 import type { FinancialAnalysisResult } from "@shared/schema";
 
 interface AIAnalysisProps {
@@ -121,6 +121,92 @@ export function AIAnalysis({ analysis }: AIAnalysisProps) {
                 </li>
               ))}
             </ol>
+          </div>
+        )}
+
+        {/* Creditworthiness Analysis */}
+        {analysis.creditworthinessAnalysis && (
+          <div className="space-y-4 p-4 rounded-lg bg-purple-500/5 border border-purple-500/20">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <h3 className="text-lg font-semibold">Анализ кредитоспособности</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {analysis.creditworthinessAnalysis.borrowerReliability && (
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Надежность заемщика</h4>
+                  <p className="text-sm leading-relaxed">
+                    {analysis.creditworthinessAnalysis.borrowerReliability}
+                  </p>
+                </div>
+              )}
+              
+              {analysis.creditworthinessAnalysis.debtRepaymentCapacity && (
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Способность возврата кредита</h4>
+                  <p className="text-sm leading-relaxed">
+                    {analysis.creditworthinessAnalysis.debtRepaymentCapacity}
+                  </p>
+                </div>
+              )}
+              
+              {analysis.creditworthinessAnalysis.creditRating && (
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Кредитный рейтинг</h4>
+                  <p className="text-sm leading-relaxed font-medium">
+                    {analysis.creditworthinessAnalysis.creditRating}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Industry Analysis */}
+        {analysis.industryAnalysis && (
+          <div className="space-y-4 p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-lg font-semibold">Отраслевой анализ</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {analysis.industryAnalysis.sector && (
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Отрасль</h4>
+                  <p className="text-sm leading-relaxed">
+                    {analysis.industryAnalysis.sector}
+                  </p>
+                </div>
+              )}
+              
+              {analysis.industryAnalysis.competitivePosition && (
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Конкурентная позиция</h4>
+                  <p className="text-sm leading-relaxed">
+                    {analysis.industryAnalysis.competitivePosition}
+                  </p>
+                </div>
+              )}
+              
+              {analysis.industryAnalysis.industryRisks && analysis.industryAnalysis.industryRisks.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Отраслевые риски</h4>
+                  <ul className="space-y-2">
+                    {analysis.industryAnalysis.industryRisks.map((risk, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm"
+                      >
+                        <ShieldAlert className="h-4 w-4 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                        <span>{risk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

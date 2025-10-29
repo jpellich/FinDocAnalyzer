@@ -14,6 +14,16 @@ interface AIAnalysisResult {
   weaknesses: string[];
   recommendations: string[];
   riskLevel: "low" | "medium" | "high";
+  creditworthinessAnalysis?: {
+    borrowerReliability: string;
+    debtRepaymentCapacity: string;
+    creditRating: string;
+  };
+  industryAnalysis?: {
+    sector: string;
+    industryRisks: string[];
+    competitivePosition: string;
+  };
 }
 
 export async function generateFinancialAnalysis(
@@ -27,7 +37,16 @@ export async function generateFinancialAnalysis(
       return generateFallbackAnalysis(data, ratios);
     }
 
-    const prompt = `Вы финансовый аналитик-эксперт. Проанализируйте следующие финансовые данные и коэффициенты компании:
+    const okvedInfo = data.okved ? `\n- ОКВЭД 2: ${data.okved}` : '';
+    const companyInfo = data.companyName ? `\nНаименование компании: ${data.companyName}` : '';
+    const revenueInfo = data.revenue ? `\n- Выручка: ${data.revenue.toLocaleString()}` : '';
+    const netIncomeInfo = data.netIncome ? `\n- Чистая прибыль: ${data.netIncome.toLocaleString()}` : '';
+    
+    const profitabilityInfo = ratios.roa || ratios.roe || ratios.ros ? `
+
+ПОКАЗАТЕЛИ РЕНТАБЕЛЬНОСТИ:${ratios.roa ? `\n- ROA (рентабельность активов): ${(ratios.roa * 100).toFixed(2)}%` : ''}${ratios.roe ? `\n- ROE (рентабельность капитала): ${(ratios.roe * 100).toFixed(2)}%` : ''}${ratios.ros ? `\n- ROS (рентабельность продаж): ${(ratios.ros * 100).toFixed(2)}%` : ''}${ratios.grossProfitMargin ? `\n- Валовая рентабельность: ${(ratios.grossProfitMargin * 100).toFixed(2)}%` : ''}${ratios.netProfitMargin ? `\n- Чистая рентабельность: ${(ratios.netProfitMargin * 100).toFixed(2)}%` : ''}` : '';
+
+    const prompt = `Вы финансовый аналитик-эксперт, специализирующийся на оценке кредитоспособности юридических лиц. Проанализируйте финансовое состояние компании и предоставьте детальное заключение о способности заемщика к возврату кредита.${companyInfo}${okvedInfo}
 
 ФИНАНСОВЫЕ ДАННЫЕ:
 - Оборотные активы: ${data.currentAssets.toLocaleString()}
@@ -39,7 +58,7 @@ export async function generateFinancialAnalysis(
 - Краткосрочные обязательства: ${data.currentLiabilities.toLocaleString()}
 - Всего обязательств: ${data.totalLiabilities.toLocaleString()}
 - Собственный капитал: ${data.equity.toLocaleString()}
-- Долгосрочный долг: ${data.longTermDebt.toLocaleString()}
+- Долгосрочный долг: ${data.longTermDebt.toLocaleString()}${revenueInfo}${netIncomeInfo}
 
 РАССЧИТАННЫЕ КОЭФФИЦИЕНТЫ:
 - Коэффициент текущей ликвидности: ${ratios.currentRatio.toFixed(2)} (норма ≥ 2.0)
@@ -49,22 +68,33 @@ export async function generateFinancialAnalysis(
 - Коэффициент задолженности: ${ratios.debtRatio.toFixed(2)} (норма < 0.5)
 - Соотношение долга к капиталу: ${ratios.debtToEquityRatio.toFixed(2)} (норма < 1.0)
 - Финансовый рычаг: ${ratios.financialLeverageRatio.toFixed(2)}
-- Оборотный капитал: ${ratios.workingCapital.toLocaleString()}
+- Оборотный капитал: ${ratios.workingCapital.toLocaleString()}${profitabilityInfo}
 
-Предоставьте профессиональный анализ в формате JSON со следующими полями:
+ТРЕБУЕТСЯ ДЕТАЛЬНЫЙ АНАЛИЗ В ФОРМАТЕ JSON:
 {
   "summary": "краткое резюме финансового состояния компании (2-3 предложения)",
-  "strengths": ["массив из 3-5 сильных сторон"],
-  "weaknesses": ["массив из 2-4 слабых сторон или областей для улучшения"],
-  "recommendations": ["массив из 3-5 конкретных рекомендаций"],
-  "riskLevel": "low/medium/high - оценка общего уровня финансового риска"
+  "strengths": ["массив из 4-6 сильных сторон компании"],
+  "weaknesses": ["массив из 3-5 слабых сторон или областей для улучшения"],
+  "recommendations": ["массив из 4-6 конкретных рекомендаций"],
+  "riskLevel": "low/medium/high - общий уровень финансового риска",
+  "creditworthinessAnalysis": {
+    "borrowerReliability": "подробная оценка надежности заемщика: анализ финансовой устойчивости, платежеспособности, истории обязательств. Укажите конкретные показатели (2-3 предложения)",
+    "debtRepaymentCapacity": "детальный анализ способности возврата кредита: оценка денежных потоков, ликвидности, покрытия обязательств. Рассчитайте примерный срок погашения при текущих показателях (2-3 предложения)",
+    "creditRating": "итоговый кредитный рейтинг компании с обоснованием: A+ (отлично), A (хорошо), B (удовлетворительно), C (ниже среднего), D (высокий риск). Укажите ключевые факторы рейтинга"
+  },
+  "industryAnalysis": {
+    "sector": "${data.okved ? `краткое описание отрасли по ОКВЭД ${data.okved}: основные характеристики, текущее состояние рынка (1-2 предложения)` : 'общая характеристика отрасли на основе профиля активов (1-2 предложения)'}",
+    "industryRisks": ["массив из 4-6 отраслевых рисков, которые могут повлиять на способность компании погашать долги: макроэкономические факторы, конкуренция, регуляторные изменения, сезонность, технологические изменения"],
+    "competitivePosition": "оценка конкурентного положения компании в отрасли на основе финансовых показателей (1-2 предложения)"
+  }
 }
 
-Анализ должен быть:
-- Профессиональным и основанным на реальных финансовых показателях
-- На русском языке
-- Конкретным с упоминанием конкретных цифр
-- Практичным с действенными рекомендациями`;
+ВАЖНО:
+- Все анализы должны быть конкретными с упоминанием фактических показателей
+- Кредитный анализ должен быть профессиональным, как для банковской оценки
+- Отраслевые риски должны быть специфичными для данного сектора экономики
+- Рекомендации должны быть практичными и направленными на улучшение кредитоспособности
+- Весь анализ на русском языке`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -106,7 +136,31 @@ export async function generateFinancialAnalysis(
         : ["Рекомендуется регулярный мониторинг финансовых показателей"],
       riskLevel: ["low", "medium", "high"].includes(result.riskLevel) 
         ? result.riskLevel 
-        : determineRiskLevel(ratios)
+        : determineRiskLevel(ratios),
+      creditworthinessAnalysis: result.creditworthinessAnalysis && 
+        typeof result.creditworthinessAnalysis === "object" ? {
+          borrowerReliability: typeof result.creditworthinessAnalysis.borrowerReliability === "string"
+            ? result.creditworthinessAnalysis.borrowerReliability
+            : "",
+          debtRepaymentCapacity: typeof result.creditworthinessAnalysis.debtRepaymentCapacity === "string"
+            ? result.creditworthinessAnalysis.debtRepaymentCapacity
+            : "",
+          creditRating: typeof result.creditworthinessAnalysis.creditRating === "string"
+            ? result.creditworthinessAnalysis.creditRating
+            : ""
+        } : undefined,
+      industryAnalysis: result.industryAnalysis && 
+        typeof result.industryAnalysis === "object" ? {
+          sector: typeof result.industryAnalysis.sector === "string"
+            ? result.industryAnalysis.sector
+            : "",
+          industryRisks: Array.isArray(result.industryAnalysis.industryRisks)
+            ? result.industryAnalysis.industryRisks.filter((r: any) => typeof r === "string")
+            : [],
+          competitivePosition: typeof result.industryAnalysis.competitivePosition === "string"
+            ? result.industryAnalysis.competitivePosition
+            : ""
+        } : undefined
     };
 
     return validated;
@@ -159,6 +213,15 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
   if (recommendations.length === 0) {
     recommendations.push("Продолжать мониторинг финансовых показателей для поддержания стабильности");
   }
+  
+  // Generate basic creditworthiness analysis
+  let creditRating = "B";
+  if (riskLevel === "low") creditRating = "A";
+  else if (riskLevel === "high") creditRating = "C";
+  
+  const debtCoverageRatio = ratios.workingCapital > 0 && data.currentLiabilities > 0 
+    ? (ratios.workingCapital / data.currentLiabilities).toFixed(2) 
+    : "0";
 
   return {
     summary,
@@ -166,6 +229,21 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
     weaknesses: weaknesses.length > 0 ? weaknesses : ["Рекомендуется дополнительный анализ для выявления областей улучшения"],
     recommendations,
     riskLevel,
+    creditworthinessAnalysis: {
+      borrowerReliability: `На основе коэффициента автономии ${ratios.equityRatio.toFixed(2)} и текущей ликвидности ${ratios.currentRatio.toFixed(2)}, финансовая устойчивость компании оценивается как ${riskLevel === "low" ? "высокая" : riskLevel === "medium" ? "средняя" : "низкая"}. Платежеспособность ${ratios.currentRatio >= 1.5 ? "достаточная" : "требует улучшения"}.`,
+      debtRepaymentCapacity: `Покрытие обязательств оборотным капиталом составляет ${debtCoverageRatio}. При текущих показателях ликвидности компания ${ratios.currentRatio >= 2.0 ? "способна своевременно" : ratios.currentRatio >= 1.0 ? "может с определенными ограничениями" : "имеет затруднения"} обслуживать краткосрочные обязательства.`,
+      creditRating: `Кредитный рейтинг: ${creditRating}. ${creditRating === "A" ? "Низкий кредитный риск, высокая вероятность выполнения обязательств." : creditRating === "B" ? "Средний кредитный риск, требуется мониторинг финансового состояния." : "Повышенный кредитный риск, рекомендуется дополнительное обеспечение."}`
+    },
+    industryAnalysis: {
+      sector: data.okved ? `Отрасль по ОКВЭД ${data.okved}` : "Отрасль не указана в документах",
+      industryRisks: [
+        "Макроэкономические риски: изменение процентных ставок и инфляции",
+        "Рыночные риски: колебания спроса и конкуренция",
+        "Регуляторные риски: изменения в законодательстве и налогообложении",
+        "Операционные риски: зависимость от поставщиков и дебиторов"
+      ],
+      competitivePosition: `На основе финансовых показателей, конкурентная позиция компании оценивается как ${riskLevel === "low" ? "устойчивая" : riskLevel === "medium" ? "средняя" : "слабая"}.`
+    }
   };
 }
 

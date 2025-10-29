@@ -2,6 +2,10 @@ import { z } from "zod";
 
 // Financial data from uploaded Excel file
 export interface FinancialData {
+  // Company information
+  okved?: string; // ОКВЭД 2 code for industry classification
+  companyName?: string; // Company name if available
+  
   // Balance Sheet items
   currentAssets: number;
   cashAndEquivalents: number;
@@ -117,6 +121,16 @@ export interface FinancialAnalysisResult {
     weaknesses: string[];
     recommendations: string[];
     riskLevel: "low" | "medium" | "high";
+    creditworthinessAnalysis?: {
+      borrowerReliability: string;
+      debtRepaymentCapacity: string;
+      creditRating: string;
+    };
+    industryAnalysis?: {
+      sector: string;
+      industryRisks: string[];
+      competitivePosition: string;
+    };
   };
   timestamp: string;
 }
@@ -135,6 +149,10 @@ export const uploadFileSchema = z.object({
 
 // Parsed Excel data schema
 export const financialDataSchema = z.object({
+  // Company information
+  okved: z.string().optional(),
+  companyName: z.string().optional(),
+  
   currentAssets: z.number().positive(),
   cashAndEquivalents: z.number().nonnegative(),
   shortTermInvestments: z.number().nonnegative(),
