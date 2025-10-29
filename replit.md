@@ -37,7 +37,7 @@ Core financial calculations include liquidity ratios (current, quick, absolute) 
 AI analysis is integrated with OpenAI GPT-5, featuring a graceful fallback to rule-based analysis if the API encounters issues. Data validation is performed using Zod schemas.
 
 ### Feature Specifications
--   **File Upload & Parsing**: Supports Excel, DOCX (via Mammoth), and PDF (via pdf-parse) with intelligent content extraction. Parser recognizes all standard balance sheet line items with codes (1110-1190 for Section I, etc.).
+-   **File Upload & Parsing**: Supports Excel, DOCX (via Mammoth), and PDF (via pdfjs-dist legacy build) with intelligent content extraction. Parser recognizes all standard balance sheet line items with codes (1110-1190 for Section I, etc.).
 -   **Financial Data Display**: 
     -   Comprehensive display of the balance sheet (ASSETS/LIABILITIES with sections I-V) and Profit & Loss statement.
     -   **Expandable/Collapsible Sections**: All balance sheet sections (I-V) are initially collapsed and can be clicked to reveal detailed line items with their corresponding codes.
@@ -82,6 +82,6 @@ AI analysis is integrated with OpenAI GPT-5, featuring a graceful fallback to ru
 -   **Multer**: Middleware for handling `multipart/form-data` (file uploads).
 -   **XLSX**: Library for parsing Excel files.
 -   **Mammoth**: Library for extracting text from DOCX files.
--   **pdf-parse**: Library for extracting text from PDF files.
+-   **pdfjs-dist**: Library for extracting text from PDF files (using legacy build for Node.js compatibility).
 -   **OpenAI SDK**: Integration with OpenAI GPT-5 for AI analysis.
 -   **Zod**: Schema declaration and validation library.
