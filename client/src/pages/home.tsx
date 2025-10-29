@@ -80,6 +80,7 @@ export default function Home() {
         title: "Ошибка обработки",
         description: errorMessage,
         variant: "destructive",
+        className: "whitespace-pre-line",
       });
       
       setProgress(0);
