@@ -24,6 +24,7 @@ async function extractTextFromDocx(buffer: Buffer): Promise<string> {
 
 /**
  * Extract text from PDF file using pdfjs-dist
+ * Groups text items by their Y-coordinate to preserve line structure
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   try {
@@ -34,22 +35,61 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     const loadingTask = pdfjsLib.getDocument({ data });
     const pdf = await loadingTask.promise;
     
+    console.log(`PDF has ${pdf.numPages} pages`);
+    
     // Extract text from all pages
-    const textParts: string[] = [];
+    const allPages: string[] = [];
     
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
       
-      // Extract text items
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
+      console.log(`Page ${pageNum}: ${textContent.items.length} text items`);
       
-      textParts.push(pageText);
+      // Group text items by their Y-coordinate (same line)
+      const lineMap = new Map<number, string[]>();
+      
+      let itemCount = 0;
+      for (const item of textContent.items) {
+        if (!('str' in item)) {
+          console.log(`Item ${itemCount}: no 'str' property`);
+          continue;
+        }
+        
+        const textItem = item as any;
+        const y = Math.round(textItem.transform[5]); // Y coordinate
+        const text = textItem.str.trim();
+        
+        if (itemCount < 5) {
+          console.log(`Item ${itemCount}: str="${textItem.str}", y=${y}, trimmed="${text}"`);
+        }
+        itemCount++;
+        
+        if (!text) continue;
+        
+        if (!lineMap.has(y)) {
+          lineMap.set(y, []);
+        }
+        lineMap.get(y)!.push(text);
+      }
+      
+      console.log(`Page ${pageNum}: ${lineMap.size} unique Y-coordinates found`);
+      
+      // Sort lines by Y-coordinate (top to bottom) and join
+      const sortedLines = Array.from(lineMap.entries())
+        .sort((a, b) => b[0] - a[0]) // PDF Y-axis goes bottom-to-top, so reverse
+        .map(([_, texts]) => texts.join(' '))
+        .filter(line => line.trim());
+      
+      console.log(`Page ${pageNum}: ${sortedLines.length} non-empty lines`);
+      if (sortedLines.length > 0) {
+        console.log(`First line sample: "${sortedLines[0].substring(0, 100)}"`);
+      }
+      
+      allPages.push(sortedLines.join('\n'));
     }
     
-    return textParts.join('\n');
+    return allPages.join('\n\n');
   } catch (error) {
     throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -467,6 +507,9 @@ export async function parseDocumentFile(buffer: Buffer, mimeType: string): Promi
     }
 
     console.log(`Extracted ${text.length} characters from document`);
+    console.log("=== First 2000 characters of extracted text ===");
+    console.log(text.substring(0, 2000));
+    console.log("=== End of sample ===");
     
     // Parse financial data from the extracted text
     const financialData = parseFinancialDataFromText(text);
