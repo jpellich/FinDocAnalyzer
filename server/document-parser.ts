@@ -1,5 +1,5 @@
 import mammoth from "mammoth";
-import * as pdfParseModule from "pdf-parse";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { FinancialData } from "@shared/schema";
 import { financialDataSchema } from "@shared/schema";
 
@@ -23,34 +23,36 @@ async function extractTextFromDocx(buffer: Buffer): Promise<string> {
 }
 
 /**
- * Extract text from PDF file
+ * Extract text from PDF file using pdfjs-dist
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // Debug: log module structure
-  console.log("=== PDF Parse Module Debug ===");
-  console.log("typeof pdfParseModule:", typeof pdfParseModule);
-  console.log("pdfParseModule keys:", Object.keys(pdfParseModule as any));
-  console.log("typeof pdfParseModule.default:", typeof (pdfParseModule as any).default);
-  console.log("typeof pdfParseModule itself:", typeof pdfParseModule);
-  
-  // Try to find the function in various ways
-  const pdfParse = (pdfParseModule as any).default 
-    || (pdfParseModule as any) 
-    || pdfParseModule;
+  try {
+    // Convert Buffer to Uint8Array
+    const data = new Uint8Array(buffer);
     
-  console.log("typeof pdfParse:", typeof pdfParse);
-  
-  if (typeof pdfParse !== 'function') {
-    // Try to call pdfParseModule as a function directly
-    if (typeof (pdfParseModule as any) === 'function') {
-      const data = await (pdfParseModule as any)(buffer);
-      return data.text;
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data });
+    const pdf = await loadingTask.promise;
+    
+    // Extract text from all pages
+    const textParts: string[] = [];
+    
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Extract text items
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      textParts.push(pageText);
     }
-    throw new Error(`Cannot find pdf-parse function. Type: ${typeof pdfParse}, Module type: ${typeof pdfParseModule}`);
+    
+    return textParts.join('\n');
+  } catch (error) {
+    throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-  
-  const data = await pdfParse(buffer);
-  return data.text;
 }
 
 /**
