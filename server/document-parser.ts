@@ -366,11 +366,16 @@ function parseFinancialDataFromText(text: string): FinancialData {
         const valueStr = nonEmptyLines[i + 1];
         const value = parseNumericValue(valueStr);
         
+        console.log(`Strategy 3: Found code ${code} for "${fieldName}", next line: "${valueStr}", parsed value: ${value}`);
+        
         if (value !== null && !isNaN(value)) {
           const normalizedKey = normalizeKey(fieldName);
           if (normalizedKey && !dataMap.has(normalizedKey)) {
             dataMap.set(normalizedKey, value);
             foundKeys.push(`${fieldName} (код ${code})`);
+            console.log(`Strategy 3: Added ${fieldName} = ${value}`);
+          } else if (normalizedKey && dataMap.has(normalizedKey)) {
+            console.log(`Strategy 3: Skipped ${fieldName} (already exists with value ${dataMap.get(normalizedKey)})`);
           }
         }
       }
