@@ -319,6 +319,63 @@ function parseFinancialDataFromText(text: string): FinancialData {
       }
     }
   }
+  
+  // Strategy 3: Parse by standard balance sheet codes (fallback for broken text)
+  // Map of standard Russian balance sheet codes to field names
+  const codeToFieldMap = new Map<string, string>([
+    ['1250', 'денежные средства и денежные эквиваленты'],
+    ['1240', 'финансовые вложения исключая денежные эквиваленты'],
+    ['1230', 'финансовые вложения'],
+    ['1220', 'налог на добавленную стоимость'],
+    ['1210', 'запасы'],
+    ['1260', 'прочие оборотные активы'],
+    ['1200', 'итого по разделу ii'],
+    ['1100', 'итого по разделу i'],
+    ['1110', 'нематериальные активы'],
+    ['1120', 'результаты исследований и разработок'],
+    ['1130', 'нематериальные поисковые активы'],
+    ['1140', 'материальные поисковые активы'],
+    ['1150', 'основные средства'],
+    ['1160', 'доходные вложения в материальные ценности'],
+    ['1170', 'финансовые вложения'],
+    ['1180', 'отложенные налоговые активы'],
+    ['1190', 'прочие внеоборотные активы'],
+    ['1300', 'итого по разделу iii'],
+    ['1310', 'уставный капитал'],
+    ['1360', 'резервный капитал'],
+    ['1370', 'нераспределенная прибыль'],
+    ['1400', 'итого по разделу iv'],
+    ['1410', 'заемные средства'],
+    ['1420', 'отложенные налоговые обязательства'],
+    ['1500', 'итого по разделу v'],
+    ['1510', 'заемные средства'],
+    ['1520', 'кредиторская задолженность'],
+    ['1600', 'баланс'],
+    ['1700', 'баланс'],
+  ]);
+  
+  for (let i = 0; i < nonEmptyLines.length; i++) {
+    const line = nonEmptyLines[i];
+    // Check if this line is a 4-digit code
+    if (codePattern.test(line)) {
+      const code = line;
+      const fieldName = codeToFieldMap.get(code);
+      
+      if (fieldName && i + 1 < nonEmptyLines.length) {
+        // Next line should be the value
+        const valueStr = nonEmptyLines[i + 1];
+        const value = parseNumericValue(valueStr);
+        
+        if (value !== null && !isNaN(value)) {
+          const normalizedKey = normalizeKey(fieldName);
+          if (normalizedKey && !dataMap.has(normalizedKey)) {
+            dataMap.set(normalizedKey, value);
+            foundKeys.push(`${fieldName} (код ${code})`);
+          }
+        }
+      }
+    }
+  }
 
   console.log(`Найдены следующие поля в документе (${foundKeys.length} полей):`, foundKeys.slice(0, 30));
 
