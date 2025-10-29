@@ -1,4 +1,5 @@
 import mammoth from "mammoth";
+import * as pdfParseModule from "pdf-parse";
 import type { FinancialData } from "@shared/schema";
 import { financialDataSchema } from "@shared/schema";
 
@@ -25,8 +26,29 @@ async function extractTextFromDocx(buffer: Buffer): Promise<string> {
  * Extract text from PDF file
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // pdf-parse uses CommonJS, use dynamic import
-  const pdfParse = (await import("pdf-parse")).default;
+  // Debug: log module structure
+  console.log("=== PDF Parse Module Debug ===");
+  console.log("typeof pdfParseModule:", typeof pdfParseModule);
+  console.log("pdfParseModule keys:", Object.keys(pdfParseModule as any));
+  console.log("typeof pdfParseModule.default:", typeof (pdfParseModule as any).default);
+  console.log("typeof pdfParseModule itself:", typeof pdfParseModule);
+  
+  // Try to find the function in various ways
+  const pdfParse = (pdfParseModule as any).default 
+    || (pdfParseModule as any) 
+    || pdfParseModule;
+    
+  console.log("typeof pdfParse:", typeof pdfParse);
+  
+  if (typeof pdfParse !== 'function') {
+    // Try to call pdfParseModule as a function directly
+    if (typeof (pdfParseModule as any) === 'function') {
+      const data = await (pdfParseModule as any)(buffer);
+      return data.text;
+    }
+    throw new Error(`Cannot find pdf-parse function. Type: ${typeof pdfParse}, Module type: ${typeof pdfParseModule}`);
+  }
+  
   const data = await pdfParse(buffer);
   return data.text;
 }
