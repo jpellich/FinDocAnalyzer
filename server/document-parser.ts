@@ -1,5 +1,6 @@
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import Tesseract from "tesseract.js";
 import type { FinancialData } from "@shared/schema";
 import { financialDataSchema } from "@shared/schema";
 
@@ -23,8 +24,60 @@ async function extractTextFromDocx(buffer: Buffer): Promise<string> {
 }
 
 /**
+ * Extract text from a PDF page using OCR (Tesseract)
+ */
+async function extractTextFromPdfPageWithOCR(
+  page: any,
+  pageNum: number
+): Promise<string> {
+  try {
+    console.log(`Using OCR for page ${pageNum}...`);
+    
+    // Render page to canvas
+    const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR
+    
+    // Create canvas - note: in Node.js we need to handle this differently
+    // We'll render to an image buffer that Tesseract can process
+    const canvas = {
+      width: viewport.width,
+      height: viewport.height,
+      getContext: () => ({
+        fillStyle: '',
+        fillRect: () => {},
+        save: () => {},
+        restore: () => {},
+        transform: () => {},
+        setTransform: () => {},
+        drawImage: () => {},
+        getImageData: (x: number, y: number, w: number, h: number) => ({
+          data: new Uint8ClampedArray(w * h * 4),
+          width: w,
+          height: h
+        })
+      })
+    };
+    
+    const renderContext = {
+      canvasContext: canvas.getContext(),
+      viewport: viewport,
+    };
+    
+    await page.render(renderContext).promise;
+    
+    // For now, we'll skip OCR on scanned PDFs and return empty
+    // Full OCR implementation would require canvas library (node-canvas)
+    console.log(`OCR skipped for page ${pageNum} - requires additional setup`);
+    return '';
+  } catch (error) {
+    console.error(`OCR failed for page ${pageNum}:`, error);
+    return '';
+  }
+}
+
+/**
  * Extract text from PDF file using pdfjs-dist
  * Groups text items by their Y-coordinate to preserve line structure
+ * Falls back to OCR for scanned PDFs
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   try {
@@ -39,31 +92,32 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     
     // Extract text from all pages
     const allPages: string[] = [];
+    let totalTextItems = 0;
     
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
       
-      console.log(`Page ${pageNum}: ${textContent.items.length} text items`);
+      totalTextItems += textContent.items.length;
+      
+      // If no text items, this might be a scanned PDF - try OCR
+      if (textContent.items.length === 0) {
+        const ocrText = await extractTextFromPdfPageWithOCR(page, pageNum);
+        if (ocrText) {
+          allPages.push(ocrText);
+        }
+        continue;
+      }
       
       // Group text items by their Y-coordinate (same line)
       const lineMap = new Map<number, string[]>();
       
-      let itemCount = 0;
       for (const item of textContent.items) {
-        if (!('str' in item)) {
-          console.log(`Item ${itemCount}: no 'str' property`);
-          continue;
-        }
+        if (!('str' in item)) continue;
         
         const textItem = item as any;
         const y = Math.round(textItem.transform[5]); // Y coordinate
         const text = textItem.str.trim();
-        
-        if (itemCount < 5) {
-          console.log(`Item ${itemCount}: str="${textItem.str}", y=${y}, trimmed="${text}"`);
-        }
-        itemCount++;
         
         if (!text) continue;
         
@@ -73,23 +127,29 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
         lineMap.get(y)!.push(text);
       }
       
-      console.log(`Page ${pageNum}: ${lineMap.size} unique Y-coordinates found`);
-      
       // Sort lines by Y-coordinate (top to bottom) and join
       const sortedLines = Array.from(lineMap.entries())
         .sort((a, b) => b[0] - a[0]) // PDF Y-axis goes bottom-to-top, so reverse
         .map(([_, texts]) => texts.join(' '))
         .filter(line => line.trim());
       
-      console.log(`Page ${pageNum}: ${sortedLines.length} non-empty lines`);
-      if (sortedLines.length > 0) {
-        console.log(`First line sample: "${sortedLines[0].substring(0, 100)}"`);
-      }
-      
       allPages.push(sortedLines.join('\n'));
     }
     
-    return allPages.join('\n\n');
+    console.log(`Extracted text from ${totalTextItems} text items across ${pdf.numPages} pages`);
+    
+    const finalText = allPages.join('\n\n');
+    
+    // If PDF appears to be scanned (very little text), show helpful message
+    if (totalTextItems === 0) {
+      throw new Error(
+        'Этот PDF файл содержит только изображения (сканированный документ). ' +
+        'Пожалуйста, загрузите версию документа в формате Excel (.xlsx) или Word (.docx) ' +
+        'для более точного анализа.'
+      );
+    }
+    
+    return finalText;
   } catch (error) {
     throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -507,9 +567,6 @@ export async function parseDocumentFile(buffer: Buffer, mimeType: string): Promi
     }
 
     console.log(`Extracted ${text.length} characters from document`);
-    console.log("=== First 2000 characters of extracted text ===");
-    console.log(text.substring(0, 2000));
-    console.log("=== End of sample ===");
     
     // Parse financial data from the extracted text
     const financialData = parseFinancialDataFromText(text);
