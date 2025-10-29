@@ -32,7 +32,7 @@ export default function Home() {
       });
 
       setProgress(30);
-      setProcessingStage("Парсинг Excel данных...");
+      setProcessingStage("Парсинг данных из документа...");
 
       if (!response.ok) {
         const errorData = await response.json();

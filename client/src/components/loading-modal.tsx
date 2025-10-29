@@ -44,7 +44,7 @@ export function LoadingModal({ isOpen, stage, progress }: LoadingModalProps) {
           </div>
 
           <div className="space-y-1 text-xs text-muted-foreground">
-            <p>✓ Парсинг Excel файла</p>
+            <p>✓ Парсинг файла</p>
             <p className={progress >= 30 ? "" : "opacity-50"}>
               {progress >= 30 ? "✓" : "○"} Расчёт финансовых коэффициентов
             </p>
