@@ -273,13 +273,13 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
     const okvedMap: Record<string, string> = {
       "01": "Растениеводство и животноводство, охота и предоставление соответствующих услуг",
       "02": "Лесоводство и лесозаготовки",
-      "2": "Лесоводство и лесозаготовки",
       "03": "Рыболовство и рыбоводство",
       "05": "Добыча угля",
       "06": "Добыча сырой нефти и природного газа",
       "07": "Добыча металлических руд",
       "08": "Добыча прочих полезных ископаемых",
       "08.1": "Добыча камня, песка и глины",
+      "08.01": "Добыча камня, песка и глины",
       "09": "Предоставление услуг в области добычи полезных ископаемых",
       "10": "Производство пищевых продуктов",
       "11": "Производство напитков",
@@ -362,34 +362,22 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       "99": "Деятельность экстерриториальных организаций и органов"
     };
 
-    // Normalize the code (remove leading zeros, trim)
+    // Normalize the code (trim)
     const normalizedCode = okvedCode.trim();
     
     // Try exact match first
     if (okvedMap[normalizedCode]) {
-      return `ОКВЭД ${normalizedCode} - ${okvedMap[normalizedCode]}`;
+      return `${okvedMap[normalizedCode]}`;
     }
 
-    // Try matching with zero padding (e.g., "2" -> "02")
-    const paddedCode = normalizedCode.length === 1 ? `0${normalizedCode}` : normalizedCode;
-    if (okvedMap[paddedCode]) {
-      return `ОКВЭД ${normalizedCode} - ${okvedMap[paddedCode]}`;
-    }
-
-    // Try matching the first 2 characters
-    const shortCode = normalizedCode.substring(0, 2);
+    // Try matching the first 2 digits (main section code)
+    // For codes like "08.1" or "08.01", try "08"
+    const shortCode = normalizedCode.split('.')[0].substring(0, 2);
     if (okvedMap[shortCode]) {
-      return `ОКВЭД ${normalizedCode} - ${okvedMap[shortCode]}`;
+      return `${okvedMap[shortCode]}`;
     }
 
-    // Try matching just the first character with padding
-    const firstChar = normalizedCode.substring(0, 1);
-    const paddedFirstChar = `0${firstChar}`;
-    if (okvedMap[paddedFirstChar]) {
-      return `ОКВЭД ${normalizedCode} - ${okvedMap[paddedFirstChar]}`;
-    }
-
-    return `ОКВЭД ${normalizedCode}`;
+    return `Отрасль по коду ${normalizedCode}`;
   };
 
   const fallbackSectorName = data.okved ? getOkvedSectorNameLocal(data.okved) : "Отрасль не указана";
