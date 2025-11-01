@@ -220,20 +220,34 @@ function parseFinancialDataFromText(text: string): FinancialData {
   let okved: string | undefined;
   let companyName: string | undefined;
   
-  const headerLines = nonEmptyLines.slice(0, 30);
+  const headerLines = nonEmptyLines.slice(0, 40);
   for (const line of headerLines) {
-    // Search for OKVED code after colon or tab
-    // Pattern: "ОКВЭД 2: 08.02" or "ОКВЭД 2	08.1" or "Код ОКВЭД: 46.51"
-    // Extract the actual code (digits with dots), not the "2" from "ОКВЭД 2"
+    // Search for OKVED code in various formats
     if (!okved) {
-      // Match pattern: "ОКВЭД" possibly followed by space/digit/space, then colon/tab, then the actual code
-      const okvedMatch = line.match(/оквэд\s*\d*[\s:]+([0-9]+\.?[0-9]*)/i);
-      if (okvedMatch) {
-        const code = okvedMatch[1].trim();
-        // Validate it's a real OKVED code (at least 2 digits, possibly with dot)
-        if (code.length >= 2 && /^\d+\.?\d*$/.test(code)) {
-          okved = code;
-          console.log(`Found OKVED code: ${okved} from line: "${line}"`);
+      // Try multiple patterns:
+      // 1. "ОКВЭД 2: 08.02" or "ОКВЭД 2	08.1"
+      // 2. "Код по ОКВЭД: 46.51"
+      // 3. "ОКВЭД: 08.01"
+      // 4. Just the code on a line after "ОКВЭД"
+      
+      const patterns = [
+        /оквэд\s*\d*[\s:;,]+([0-9]{2}\.[0-9]{1,2})/i,  // ОКВЭД 2: 08.02
+        /оквэд\s*\d*[\s:;,]+([0-9]{2}\.[0-9])/i,       // ОКВЭД 2: 08.1
+        /оквэд\s*\d*[\s:;,]+([0-9]{2})/i,              // ОКВЭД 2: 08
+        /код\s+(?:по\s+)?оквэд[\s:;,]+([0-9]{2}\.[0-9]{1,2})/i,  // Код по ОКВЭД: 08.02
+        /^([0-9]{2}\.[0-9]{1,2})$/,                    // Just "08.01" on its own line
+      ];
+      
+      for (const pattern of patterns) {
+        const match = line.match(pattern);
+        if (match) {
+          const code = match[1].trim();
+          // Validate it's a real OKVED code
+          if (code.length >= 2 && /^\d{2}\.?\d{0,2}$/.test(code)) {
+            okved = code;
+            console.log(`Found OKVED code: ${okved} from line: "${line}"`);
+            break;
+          }
         }
       }
     }
