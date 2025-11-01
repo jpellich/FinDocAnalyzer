@@ -26,6 +26,41 @@ interface AIAnalysisResult {
   };
 }
 
+/**
+ * Get sector name from OKVED code using OpenAI
+ */
+async function getOkvedSectorName(okvedCode: string): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) {
+    return `Отрасль по ОКВЭД ${okvedCode}`;
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: "Вы эксперт по классификации ОКВЭД 2 (Общероссийский классификатор видов экономической деятельности). Предоставляйте точные названия видов деятельности."
+        },
+        {
+          role: "user",
+          content: `Какой вид экономической деятельности соответствует коду ОКВЭД 2: ${okvedCode}? Ответьте кратко, только название отрасли без дополнительных объяснений. Формат ответа: "ОКВЭД ${okvedCode} - [Название отрасли]"`
+        }
+      ],
+      max_completion_tokens: 100,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (content) {
+      return content;
+    }
+    return `Отрасль по ОКВЭД ${okvedCode}`;
+  } catch (error) {
+    console.error("Error getting OKVED sector name:", error);
+    return `Отрасль по ОКВЭД ${okvedCode}`;
+  }
+}
+
 export async function generateFinancialAnalysis(
   data: FinancialData,
   ratios: FinancialRatios
@@ -37,7 +72,14 @@ export async function generateFinancialAnalysis(
       return generateFallbackAnalysis(data, ratios);
     }
 
-    const okvedInfo = data.okved ? `\n- ОКВЭД 2: ${data.okved}` : '';
+    // Get full sector name from OKVED code
+    let okvedInfo = '';
+    let sectorName = '';
+    if (data.okved) {
+      sectorName = await getOkvedSectorName(data.okved);
+      okvedInfo = `\n- ${sectorName}`;
+    }
+    
     const companyInfo = data.companyName ? `\nНаименование компании: ${data.companyName}` : '';
     const revenueInfo = data.revenue ? `\n- Выручка: ${data.revenue.toLocaleString()}` : '';
     const netIncomeInfo = data.netIncome ? `\n- Чистая прибыль: ${data.netIncome.toLocaleString()}` : '';
@@ -83,7 +125,7 @@ export async function generateFinancialAnalysis(
     "creditRating": "итоговый кредитный рейтинг компании с обоснованием: A+ (отлично), A (хорошо), B (удовлетворительно), C (ниже среднего), D (высокий риск). Укажите ключевые факторы рейтинга"
   },
   "industryAnalysis": {
-    "sector": "${data.okved ? `краткое описание отрасли по ОКВЭД ${data.okved}: основные характеристики, текущее состояние рынка (1-2 предложения)` : 'общая характеристика отрасли на основе профиля активов (1-2 предложения)'}",
+    "sector": "${sectorName ? `краткое описание отрасли "${sectorName}": основные характеристики, текущее состояние рынка (1-2 предложения)` : 'общая характеристика отрасли на основе профиля активов (1-2 предложения)'}",
     "industryRisks": ["массив из 4-6 отраслевых рисков, которые могут повлиять на способность компании погашать долги: макроэкономические факторы, конкуренция, регуляторные изменения, сезонность, технологические изменения"],
     "competitivePosition": "оценка конкурентного положения компании в отрасли на основе финансовых показателей (1-2 предложения)"
   }
@@ -235,7 +277,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       creditRating: `Кредитный рейтинг: ${creditRating}. ${creditRating === "A" ? "Низкий кредитный риск, высокая вероятность выполнения обязательств." : creditRating === "B" ? "Средний кредитный риск, требуется мониторинг финансового состояния." : "Повышенный кредитный риск, рекомендуется дополнительное обеспечение."}`
     },
     industryAnalysis: {
-      sector: data.okved ? `Отрасль по ОКВЭД ${data.okved}` : "Отрасль не указана в документах",
+      sector: data.okved ? `ОКВЭД ${data.okved}` : "Отрасль не указана в документах",
       industryRisks: [
         "Макроэкономические риски: изменение процентных ставок и инфляции",
         "Рыночные риски: колебания спроса и конкуренция",
