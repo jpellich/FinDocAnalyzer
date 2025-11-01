@@ -71,7 +71,7 @@ export default function Home() {
     },
     onError: (error) => {
       console.error("Error processing file:", error);
-      
+
       const errorMessage = error instanceof Error 
         ? error.message 
         : "Не удалось обработать файл. Пожалуйста, попробуйте снова.";
@@ -82,7 +82,7 @@ export default function Home() {
         variant: "destructive",
         className: "whitespace-pre-line",
       });
-      
+
       setProgress(0);
       setProcessingStage("");
     },
@@ -157,7 +157,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {analysisResult && (
                 <Button
@@ -227,7 +227,7 @@ export default function Home() {
             {/* Financial Ratios Grid */}
             <div className="space-y-6">
               <h3 className="text-2xl font-semibold">Финансовые показатели</h3>
-              
+
               {/* Liquidity Ratios */}
               <div className="space-y-4">
                 <h4 className="text-lg font-medium text-muted-foreground uppercase tracking-wide">
@@ -246,6 +246,7 @@ export default function Home() {
                   />
                   <RatioCard
                     title="Коэффициент абсолютной ликвидности"
+                    // Формула: (Денежные средства + Краткосрочные финансовые вложения) / Краткосрочные обязательства
                     ratio={analysisResult.ratios.cashRatio}
                     trend="up"
                   />
@@ -284,6 +285,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <RatioCard
                     title="Оборотный капитал"
+                    // Формула: Оборотные активы - Краткосрочные обязательства
                     ratio={analysisResult.ratios.workingCapital}
                     trend="up"
                   />
@@ -363,6 +365,21 @@ export default function Home() {
               <h3 className="text-2xl font-semibold">Визуализация показателей</h3>
               <VisualizationCharts result={analysisResult} />
             </div>
+
+            {/* Abbreviations Glossary */}
+            {analysisResult && (
+              <div className="mt-8 pt-6 border-t border-border">
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Словарь сокращений</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 text-xs text-muted-foreground">
+                  <div><span className="font-mono font-semibold">ОА</span> — Оборотные активы</div>
+                  <div><span className="font-mono font-semibold">КО</span> — Краткосрочные обязательства</div>
+                  <div><span className="font-mono font-semibold">ДС</span> — Денежные средства</div>
+                  <div><span className="font-mono font-semibold">КФВ</span> — Краткосрочные финансовые вложения</div>
+                  <div><span className="font-mono font-semibold">СК</span> — Собственный капитал</div>
+                  <div><span className="font-mono font-semibold">СОК</span> — Собственный оборотный капитал</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

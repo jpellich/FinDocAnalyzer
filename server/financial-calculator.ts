@@ -12,14 +12,14 @@ import type { FinancialData, FinancialRatios, RatioWithStatus, RatioStatus } fro
 export function validateAndNormalizeFinancialData(data: FinancialData): FinancialData {
   // Recalculate totalLiabilities from sections IV + V
   const calculatedTotalLiabilities = data.longTermDebt + data.currentLiabilities;
-  
+
   // Calculate passive (equity + liabilities) - this should equal totalAssets
   const calculatedPassive = data.equity + calculatedTotalLiabilities;
-  
+
   // Check if accounting equation holds (with 1% tolerance for rounding)
   const difference = Math.abs(data.totalAssets - calculatedPassive);
   const tolerance = data.totalAssets * 0.01; // 1% tolerance
-  
+
   if (difference > tolerance) {
     console.warn(`⚠️ Бухгалтерское уравнение не сошлось:`);
     console.warn(`   АКТИВ: ${data.totalAssets.toFixed(2)}`);
@@ -28,7 +28,7 @@ export function validateAndNormalizeFinancialData(data: FinancialData): Financia
   } else {
     console.log(`✓ Бухгалтерское уравнение сошлось: АКТИВ = ПАССИВ = ${data.totalAssets.toFixed(2)}`);
   }
-  
+
   // Return normalized data with corrected totalLiabilities
   return {
     ...data,
@@ -146,57 +146,57 @@ export function evaluateRatios(ratios: FinancialRatios): {
       value: ratios.currentRatio,
       status: getRatioStatus(ratios.currentRatio, { excellent: 2.5, good: 2.0, warning: 1.5 }),
       benchmark: "≥ 2.0",
-      description: "Способность компании погашать краткосрочные обязательства оборотными активами",
-      formula: "Кт.л. = Оборотные активы / Краткосрочные обязательства"
+      description: "Способность покрыть краткосрочные обязательства оборотными активами",
+      formula: "Кт.л. = ОА / КО"
     },
     quickRatio: {
       value: ratios.quickRatio,
       status: getRatioStatus(ratios.quickRatio, { excellent: 1.5, good: 1.0, warning: 0.8 }),
       benchmark: "≥ 1.0",
-      description: "Способность быстро погасить краткосрочные обязательства ликвидными активами",
-      formula: "Кб.л. = (Оборотные активы - Запасы) / Краткосрочные обязательства"
+      description: "Способность покрыть обязательства ликвидными активами",
+      formula: "Кб.л. = (ОА - Запасы) / КО"
     },
     cashRatio: {
       value: ratios.cashRatio,
       status: getRatioStatus(ratios.cashRatio, { excellent: 0.5, good: 0.2, warning: 0.1 }),
       benchmark: "≥ 0.2",
       description: "Способность погасить обязательства только за счет денежных средств",
-      formula: "Ка.л. = (Денежные средства + Краткосрочные финансовые вложения) / Краткосрочные обязательства"
+      formula: "Ка.л. = (ДС + КФВ) / КО"
     },
     debtToEquityRatio: {
       value: ratios.debtToEquityRatio,
       status: getRatioStatus(ratios.debtToEquityRatio, { excellent: 0.5, good: 1.0, warning: 1.5 }, true),
       benchmark: "< 1.0",
       description: "Соотношение заемного капитала к собственному",
-      formula: "Кз/с = Обязательства / Собственный капитал"
+      formula: "Кз/с = Обязательства / СК"
     },
     equityRatio: {
       value: ratios.equityRatio,
       status: getRatioStatus(ratios.equityRatio, { excellent: 0.6, good: 0.5, warning: 0.4 }),
       benchmark: "≥ 0.5",
       description: "Доля собственного капитала в общей сумме активов",
-      formula: "Кавт = Собственный капитал / Активы"
+      formula: "Кавт = СК / Активы"
     },
     debtRatio: {
       value: ratios.debtRatio,
-      status: getRatioStatus(ratios.debtRatio, { excellent: 0.3, good: 0.5, warning: 0.6 }, true),
+      status: getRatioStatus(ratios.debtRatio, { excellent: 0.4, good: 0.5, warning: 0.6 }, true),
       benchmark: "< 0.5",
-      description: "Доля заемного капитала в общей сумме активов",
-      formula: "Кзад = Обязательства / Активы"
+      description: "Доля заемных средств в общей структуре капитала",
+      formula: "Кз = Обязательства / Активы"
     },
     financialLeverageRatio: {
       value: ratios.financialLeverageRatio,
       status: getRatioStatus(ratios.financialLeverageRatio, { excellent: 1.5, good: 2.0, warning: 2.5 }, true),
-      benchmark: "1.0 - 2.0",
-      description: "Показывает эффективность использования заемного капитала",
-      formula: "Кф.р. = Активы / Собственный капитал"
+      benchmark: "< 2.0",
+      description: "Отношение всех активов к собственному капиталу",
+      formula: "Кф.р. = Активы / СК"
     },
     workingCapital: {
       value: ratios.workingCapital,
-      status: ratios.workingCapital > 0 ? "excellent" : "critical",
+      status: ratios.workingCapital > 0 ? "good" : "critical",
       benchmark: "> 0",
-      description: "Разница между оборотными активами и краткосрочными обязательствами",
-      formula: "СОК = Оборотные активы - Краткосрочные обязательства"
+      description: "Разница между оборотными активами и текущими обязательствами",
+      formula: "СОК = ОА - КО"
     },
     ...(ratios.roa !== undefined && {
       roa: {
@@ -278,3 +278,20 @@ function getRatioStatus(
     return "critical";
   }
 }
+
+// Dictionary of abbreviations used in formulas
+const abbreviations = {
+  "ДС": "Денежные средства",
+  "КФВ": "Краткосрочные финансовые вложения",
+  "КО": "Краткосрочные обязательства",
+  "ОА": "Оборотные активы",
+  "СК": "Собственный капитал",
+  "Кт.л.": "Коэффициент текущей ликвидности",
+  "Кб.л.": "Коэффициент быстрой ликвидности",
+  "Ка.л.": "Коэффициент абсолютной ликвидности",
+  "Кз/с": "Коэффициент соотношения заемного и собственного капитала",
+  "Кавт": "Коэффициент автономии (доля собственного капитала)",
+  "Кз": "Коэффициент финансовой зависимости (доля заемного капитала)",
+  "Кф.р.": "Коэффициент финансового риска (финансовый рычаг)",
+  "СОК": "Сумма оборотных средств (рабочий капитал)"
+};
