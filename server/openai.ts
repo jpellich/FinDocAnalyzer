@@ -5,7 +5,7 @@ import type { FinancialData, FinancialRatios } from "@shared/schema";
 // Reference: javascript_openai blueprint integration
 
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
+  apiKey: process.env.OPENAI_API_KEY || "" 
 });
 
 interface AIAnalysisResult {
