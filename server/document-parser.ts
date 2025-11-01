@@ -222,7 +222,7 @@ function parseFinancialDataFromText(text: string): FinancialData {
   
   const headerLines = nonEmptyLines.slice(0, 30);
   for (const line of headerLines) {
-    // Search for OKVED code: "ОКВЭД: 46.51", "Код по ОКВЭД: 46.51", etc.
+    // Search for OKVED code: "ОКВЭД: 46.51", "Код ОКВЭД: 46.51", etc.
     if (!okved) {
       const okvedMatch = line.match(/(?:оквэд|okved)[:\s]+([0-9.]+)/i);
       if (okvedMatch) {

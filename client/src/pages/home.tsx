@@ -72,8 +72,8 @@ export default function Home() {
     onError: (error) => {
       console.error("Error processing file:", error);
 
-      const errorMessage = error instanceof Error 
-        ? error.message 
+      const errorMessage = error instanceof Error
+        ? error.message
         : "Не удалось обработать файл. Пожалуйста, попробуйте снова.";
 
       toast({
