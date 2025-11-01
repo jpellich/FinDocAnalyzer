@@ -74,16 +74,16 @@ export async function generateFinancialAnalysis(
 
     // Get full sector name from OKVED code
     let okvedInfo = '';
-    let sectorName = '';
+    let sectorName = ''; // This will hold the full sector name from AI
     if (data.okved) {
       sectorName = await getOkvedSectorName(data.okved);
       okvedInfo = `\n- ${sectorName}`;
     }
-    
+
     const companyInfo = data.companyName ? `\nНаименование компании: ${data.companyName}` : '';
     const revenueInfo = data.revenue ? `\n- Выручка: ${data.revenue.toLocaleString()}` : '';
     const netIncomeInfo = data.netIncome ? `\n- Чистая прибыль: ${data.netIncome.toLocaleString()}` : '';
-    
+
     const profitabilityInfo = ratios.roa || ratios.roe || ratios.ros ? `
 
 ПОКАЗАТЕЛИ РЕНТАБЕЛЬНОСТИ:${ratios.roa ? `\n- ROA (рентабельность активов): ${(ratios.roa * 100).toFixed(2)}%` : ''}${ratios.roe ? `\n- ROE (рентабельность капитала): ${(ratios.roe * 100).toFixed(2)}%` : ''}${ratios.ros ? `\n- ROS (рентабельность продаж): ${(ratios.ros * 100).toFixed(2)}%` : ''}${ratios.grossProfitMargin ? `\n- Валовая рентабельность: ${(ratios.grossProfitMargin * 100).toFixed(2)}%` : ''}${ratios.netProfitMargin ? `\n- Чистая рентабельность: ${(ratios.netProfitMargin * 100).toFixed(2)}%` : ''}` : '';
@@ -162,6 +162,9 @@ export async function generateFinancialAnalysis(
 
     const result = JSON.parse(content);
 
+    // Use sectorName (fullOkvedName) when result.industryAnalysis.sector is empty
+    const fullOkvedName = sectorName; 
+
     // Validate and sanitize the response with strict schema checking
     const validated: AIAnalysisResult = {
       summary: typeof result.summary === "string" && result.summary.length > 0
@@ -193,9 +196,9 @@ export async function generateFinancialAnalysis(
         } : undefined,
       industryAnalysis: result.industryAnalysis && 
         typeof result.industryAnalysis === "object" ? {
-          sector: typeof result.industryAnalysis.sector === "string"
+          sector: typeof result.industryAnalysis.sector === "string" && result.industryAnalysis.sector.length > 0
             ? result.industryAnalysis.sector
-            : "",
+            : (fullOkvedName || ""), // Use fullOkvedName if AI sector is empty
           industryRisks: Array.isArray(result.industryAnalysis.industryRisks)
             ? result.industryAnalysis.industryRisks.filter((r: any) => typeof r === "string")
             : [],
@@ -209,7 +212,7 @@ export async function generateFinancialAnalysis(
   } catch (error) {
     console.error("Error generating AI analysis:", error);
     console.warn("Falling back to rule-based analysis");
-    
+
     // Return fallback analysis instead of throwing
     return generateFallbackAnalysis(data, ratios);
   }
@@ -220,9 +223,9 @@ export async function generateFinancialAnalysis(
  */
 function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios): AIAnalysisResult {
   const riskLevel = determineRiskLevel(ratios);
-  
+
   const summary = `Финансовый анализ показывает коэффициент текущей ликвидности ${ratios.currentRatio.toFixed(2)}, коэффициент автономии ${ratios.equityRatio.toFixed(2)}. Общий уровень риска оценивается как ${riskLevel === "low" ? "низкий" : riskLevel === "medium" ? "средний" : "высокий"}.`;
-  
+
   const strengths: string[] = [];
   const weaknesses: string[] = [];
   const recommendations: string[] = [];
@@ -255,15 +258,18 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
   if (recommendations.length === 0) {
     recommendations.push("Продолжать мониторинг финансовых показателей для поддержания стабильности");
   }
-  
+
   // Generate basic creditworthiness analysis
   let creditRating = "B";
   if (riskLevel === "low") creditRating = "A";
   else if (riskLevel === "high") creditRating = "C";
-  
+
   const debtCoverageRatio = ratios.workingCapital > 0 && data.currentLiabilities > 0 
     ? (ratios.workingCapital / data.currentLiabilities).toFixed(2) 
     : "0";
+
+  // Use data.okved if sectorName is not available for fallback sector
+  const fallbackSectorName = data.okved ? `ОКВЭД ${data.okved}` : "Отрасль не указана";
 
   return {
     summary,
@@ -277,7 +283,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       creditRating: `Кредитный рейтинг: ${creditRating}. ${creditRating === "A" ? "Низкий кредитный риск, высокая вероятность выполнения обязательств." : creditRating === "B" ? "Средний кредитный риск, требуется мониторинг финансового состояния." : "Повышенный кредитный риск, рекомендуется дополнительное обеспечение."}`
     },
     industryAnalysis: {
-      sector: data.okved ? `ОКВЭД ${data.okved}` : "Отрасль не указана в документах",
+      sector: fallbackSectorName, // Use fallbackSectorName here
       industryRisks: [
         "Макроэкономические риски: изменение процентных ставок и инфляции",
         "Рыночные риски: колебания спроса и конкуренция",
