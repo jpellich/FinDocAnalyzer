@@ -280,6 +280,12 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       "08": "Добыча прочих полезных ископаемых",
       "08.1": "Добыча камня, песка и глины",
       "08.01": "Добыча камня, песка и глины",
+      "08.02": "Добыча камня, песка и глины",
+      "08.9": "Добыча полезных ископаемых, не включенных в другие группировки",
+      "08.91": "Добыча минерального сырья для химической промышленности и производства минеральных удобрений",
+      "08.92": "Добыча и агломерация торфа",
+      "08.93": "Добыча соли",
+      "08.99": "Добыча прочих полезных ископаемых, не включенных в другие группировки",
       "09": "Предоставление услуг в области добычи полезных ископаемых",
       "10": "Производство пищевых продуктов",
       "11": "Производство напитков",
@@ -370,9 +376,26 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       return `${okvedMap[normalizedCode]}`;
     }
 
-    // Try matching the first 2 digits (main section code)
-    // For codes like "08.1" or "08.01", try "08"
-    const shortCode = normalizedCode.split('.')[0].substring(0, 2);
+    // Try matching with single decimal (08.02 -> 08.0)
+    if (normalizedCode.includes('.')) {
+      const singleDecimal = normalizedCode.substring(0, normalizedCode.lastIndexOf('.') + 2);
+      if (okvedMap[singleDecimal]) {
+        return `${okvedMap[singleDecimal]}`;
+      }
+    }
+
+    // Try matching the first level subcategory (08.02 -> 08.0, then 08)
+    const parts = normalizedCode.split('.');
+    if (parts.length > 1) {
+      const firstLevel = `${parts[0]}.${parts[1].charAt(0)}`;
+      if (okvedMap[firstLevel]) {
+        return `${okvedMap[firstLevel]}`;
+      }
+    }
+
+    // Try matching the main section code (first 2 digits)
+    // For codes like "08.1" or "08.02", try "08"
+    const shortCode = normalizedCode.split('.')[0];
     if (okvedMap[shortCode]) {
       return `${okvedMap[shortCode]}`;
     }

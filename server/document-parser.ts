@@ -222,15 +222,19 @@ function parseFinancialDataFromText(text: string): FinancialData {
   
   const headerLines = nonEmptyLines.slice(0, 30);
   for (const line of headerLines) {
-    // Search for OKVED code: "08.1", "46.51", etc.
-    // Pattern matches: "ОКВЭД 2: 08.1" or "Код по ОКВЭД: 46.51"
-    // The code itself is digits with optional dots/periods
+    // Search for OKVED code after colon or tab
+    // Pattern: "ОКВЭД 2: 08.02" or "ОКВЭД 2	08.1" or "Код ОКВЭД: 46.51"
+    // Extract the actual code (digits with dots), not the "2" from "ОКВЭД 2"
     if (!okved) {
-      // First try to match pattern with colon separator
-      const okvedMatch = line.match(/оквэд\s*\d*[:\s]+([0-9][0-9.]*)/i);
+      // Match pattern: "ОКВЭД" possibly followed by space/digit/space, then colon/tab, then the actual code
+      const okvedMatch = line.match(/оквэд\s*\d*[\s:]+([0-9]+\.?[0-9]*)/i);
       if (okvedMatch) {
-        okved = okvedMatch[1].trim();
-        console.log(`Found OKVED: ${okved}`);
+        const code = okvedMatch[1].trim();
+        // Validate it's a real OKVED code (at least 2 digits, possibly with dot)
+        if (code.length >= 2 && /^\d+\.?\d*$/.test(code)) {
+          okved = code;
+          console.log(`Found OKVED code: ${okved} from line: "${line}"`);
+        }
       }
     }
     
