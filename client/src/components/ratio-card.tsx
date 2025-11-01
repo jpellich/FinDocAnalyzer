@@ -95,8 +95,7 @@ export function RatioCard({ title, ratio, trend, isPercentage = false }: RatioCa
             {ratio.description}
           </p>
           {ratio.formula && (
-            <div className="mt-2 pt-2 border-t border-border flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Формула:</span>
+            <div className="mt-2 pt-2 border-t border-border">
               <FractionFormula formula={ratio.formula} className="text-muted-foreground" />
             </div>
           )}
