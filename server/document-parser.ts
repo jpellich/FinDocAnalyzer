@@ -231,10 +231,13 @@ function parseFinancialDataFromText(text: string): FinancialData {
       // 4. Just the code on a line after "ОКВЭД"
       
       const patterns = [
+        /оквэд\s*\d*[\s:;,]+([0-9]{2}\.[0-9]{1,2}\.[0-9])/i,  // ОКВЭД 2: 71.12.2
         /оквэд\s*\d*[\s:;,]+([0-9]{2}\.[0-9]{1,2})/i,  // ОКВЭД 2: 08.02
         /оквэд\s*\d*[\s:;,]+([0-9]{2}\.[0-9])/i,       // ОКВЭД 2: 08.1
         /оквэд\s*\d*[\s:;,]+([0-9]{2})/i,              // ОКВЭД 2: 08
+        /код\s+(?:по\s+)?оквэд[\s:;,]+([0-9]{2}\.[0-9]{1,2}\.[0-9])/i,  // Код по ОКВЭД: 71.12.2
         /код\s+(?:по\s+)?оквэд[\s:;,]+([0-9]{2}\.[0-9]{1,2})/i,  // Код по ОКВЭД: 08.02
+        /^([0-9]{2}\.[0-9]{1,2}\.[0-9])$/,             // Just "71.12.2" on its own line
         /^([0-9]{2}\.[0-9]{1,2})$/,                    // Just "08.01" on its own line
       ];
       
@@ -242,8 +245,8 @@ function parseFinancialDataFromText(text: string): FinancialData {
         const match = line.match(pattern);
         if (match) {
           const code = match[1].trim();
-          // Validate it's a real OKVED code
-          if (code.length >= 2 && /^\d{2}\.?\d{0,2}$/.test(code)) {
+          // Validate it's a real OKVED code (supports formats: 08, 08.1, 08.02, 71.12.2)
+          if (code.length >= 2 && /^\d{2}(\.?\d{1,2})?(\.?\d)?$/.test(code)) {
             okved = code;
             console.log(`Found OKVED code: ${okved} from line: "${line}"`);
             break;

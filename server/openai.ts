@@ -342,6 +342,12 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       "69": "Деятельность в области права и бухгалтерского учета",
       "70": "Деятельность головных офисов и консультирование по вопросам управления",
       "71": "Деятельность в области архитектуры и инженерно-технического проектирования",
+      "71.1": "Деятельность в области архитектуры и инженерно-технического проектирования",
+      "71.11": "Деятельность в области архитектуры",
+      "71.12": "Деятельность в области инженерных изысканий, инженерно-технического проектирования",
+      "71.12.1": "Инженерные изыскания для строительства зданий и сооружений",
+      "71.12.2": "Деятельность в области инженерно-технического проектирования",
+      "71.12.3": "Производство геодезических и картографических работ",
       "72": "Научные исследования и разработки",
       "73": "Деятельность рекламная и исследование конъюнктуры рынка",
       "74": "Деятельность профессиональная научная и техническая прочая",
@@ -371,31 +377,34 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
     // Normalize the code (trim)
     const normalizedCode = okvedCode.trim();
     
-    // Try exact match first
+    // Try exact match first (71.12.2, 08.02, etc.)
     if (okvedMap[normalizedCode]) {
       return `${okvedMap[normalizedCode]}`;
     }
 
-    // Try matching with single decimal (08.02 -> 08.0)
-    if (normalizedCode.includes('.')) {
-      const singleDecimal = normalizedCode.substring(0, normalizedCode.lastIndexOf('.') + 2);
-      if (okvedMap[singleDecimal]) {
-        return `${okvedMap[singleDecimal]}`;
+    // Try matching progressively shorter codes
+    const parts = normalizedCode.split('.');
+    
+    // For 71.12.2, try: 71.12.2 -> 71.12 -> 71.1 -> 71
+    if (parts.length === 3) {
+      // Try 71.12
+      const twoLevel = `${parts[0]}.${parts[1]}`;
+      if (okvedMap[twoLevel]) {
+        return `${okvedMap[twoLevel]}`;
       }
     }
-
-    // Try matching the first level subcategory (08.02 -> 08.0, then 08)
-    const parts = normalizedCode.split('.');
-    if (parts.length > 1) {
-      const firstLevel = `${parts[0]}.${parts[1].charAt(0)}`;
-      if (okvedMap[firstLevel]) {
-        return `${okvedMap[firstLevel]}`;
+    
+    if (parts.length >= 2) {
+      // Try 71.1 (first digit of second part)
+      const oneDigitSecond = `${parts[0]}.${parts[1].charAt(0)}`;
+      if (okvedMap[oneDigitSecond]) {
+        return `${okvedMap[oneDigitSecond]}`;
       }
     }
 
     // Try matching the main section code (first 2 digits)
-    // For codes like "08.1" or "08.02", try "08"
-    const shortCode = normalizedCode.split('.')[0];
+    // For codes like "71.12.2", "08.1" or "08.02", try "71" or "08"
+    const shortCode = parts[0];
     if (okvedMap[shortCode]) {
       return `${okvedMap[shortCode]}`;
     }
