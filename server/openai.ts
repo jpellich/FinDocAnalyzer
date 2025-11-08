@@ -47,7 +47,7 @@ async function getOkvedSectorName(okvedCode: string): Promise<string> {
           content: `Какой вид экономической деятельности соответствует коду ОКВЭД: ${okvedCode}? Ответьте кратко, только название отрасли без дополнительных объяснений. Формат ответа: "ОКВЭД ${okvedCode} - [Название отрасли]"`
         }
       ],
-      max_completion_tokens: 100,
+      max_completion_tokens: 200,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -162,14 +162,25 @@ export async function generateFinancialAnalysis(
         }
       ],
       response_format: { type: "json_object" },
-      max_completion_tokens: 4096,
+      max_completion_tokens: 16384,
     });
 
     console.log("Received response from OpenAI API");
 
-    const content = response.choices[0]?.message?.content;
+    const choice = response.choices[0];
+    const content = choice?.message?.content;
+    
+    // Check if response was cut off due to token limit
+    if (choice?.finish_reason === "length") {
+      console.error("OpenAI response exceeded token limit (finish_reason: length)");
+      console.error("Consider increasing max_completion_tokens or simplifying the prompt");
+      console.warn("Falling back to rule-based analysis");
+      return generateFallbackAnalysis(data, ratios);
+    }
+    
     if (!content) {
       console.warn("Empty response from OpenAI API, using fallback analysis");
+      console.warn("Finish reason:", choice?.finish_reason);
       console.warn("Response object:", JSON.stringify(response, null, 2));
       return generateFallbackAnalysis(data, ratios);
     }
