@@ -96,6 +96,66 @@ export interface RatioWithStatus {
   formula: string;
 }
 
+// Reporting period with year-specific data and ratios
+export interface ReportingPeriod {
+  year: number;
+  data: FinancialData;
+  ratios: {
+    currentRatio: RatioWithStatus;
+    quickRatio: RatioWithStatus;
+    cashRatio: RatioWithStatus;
+    debtToEquityRatio: RatioWithStatus;
+    equityRatio: RatioWithStatus;
+    debtRatio: RatioWithStatus;
+    financialLeverageRatio: RatioWithStatus;
+    workingCapital: RatioWithStatus;
+    roa?: RatioWithStatus;
+    roe?: RatioWithStatus;
+    ros?: RatioWithStatus;
+    grossProfitMargin?: RatioWithStatus;
+    operatingProfitMargin?: RatioWithStatus;
+    netProfitMargin?: RatioWithStatus;
+  };
+}
+
+// Bank-style credit report structure
+export interface BankCreditReport {
+  // 1. Industry Analysis
+  industrySector: {
+    description: string; // Description of the industry sector
+    marketConditions?: string; // Current market state and trends (optional)
+  };
+  
+  // 2. Financial Condition Analysis
+  financialCondition: {
+    liquidity: {
+      analysis: string; // Detailed analysis with specific ratios
+      conclusion: string; // Brief summary conclusion
+    };
+    stability: {
+      analysis: string; // Detailed analysis with specific ratios
+      conclusion: string; // Brief summary conclusion
+    };
+    profitability: {
+      analysis: string; // Detailed analysis with specific ratios
+      conclusion: string; // Brief summary conclusion
+    };
+  };
+  
+  // 3. Strengths & Weaknesses
+  strengths: string[];
+  weaknesses: string[];
+  
+  // 4. Recommendations & Credit Decision
+  recommendations: {
+    items: string[];
+    creditDecision: string; // ✅ Approved / ❌ Declined / ⚠️ Conditional
+    comment: string; // Overall assessment and conditions
+  };
+  
+  riskLevel: "low" | "medium" | "high";
+}
+
 export interface FinancialAnalysisResult {
   data: FinancialData;
   ratios: {
@@ -115,23 +175,10 @@ export interface FinancialAnalysisResult {
     operatingProfitMargin?: RatioWithStatus;
     netProfitMargin?: RatioWithStatus;
   };
-  aiAnalysis: {
-    summary: string;
-    strengths: string[];
-    weaknesses: string[];
-    recommendations: string[];
-    riskLevel: "low" | "medium" | "high";
-    creditworthinessAnalysis?: {
-      borrowerReliability: string;
-      debtRepaymentCapacity: string;
-      creditRating: string;
-    };
-    industryAnalysis?: {
-      sector: string;
-      industryRisks: string[];
-      competitivePosition: string;
-    };
-  };
+  // Historical periods (3 years of data)
+  periods?: ReportingPeriod[];
+  // AI Analysis in bank credit report format
+  aiAnalysis: BankCreditReport;
   timestamp: string;
 }
 

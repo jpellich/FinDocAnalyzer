@@ -6,7 +6,7 @@ import { parseExcelFile, generateSampleTemplate } from "./excel-parser";
 import { parseDocumentFile } from "./document-parser";
 import { calculateFinancialRatios, evaluateRatios, validateAndNormalizeFinancialData } from "./financial-calculator";
 import { generateFinancialAnalysis } from "./openai";
-import type { FinancialAnalysisResult } from "@shared/schema";
+import type { FinancialAnalysisResult, ReportingPeriod, FinancialData } from "@shared/schema";
 
 // Configure multer for file upload (in-memory storage)
 const upload = multer({
@@ -216,10 +216,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiAnalysis = await generateFinancialAnalysis(normalizedData, ratios);
       console.log("✓ AI analysis generated");
 
-      // Step 6: Create complete analysis result
+      // Step 6: Create mock historical periods (3 years) for visualization
+      // TODO: Replace with real multi-year parsing when document-parser is updated
+      const currentYear = 2023;
+      const periods: ReportingPeriod[] = [];
+      
+      for (let i = 0; i < 3; i++) {
+        const year = currentYear - i;
+        const variation = i * 0.1; // 10% variation per year for demo
+        
+        // Create slightly different data for previous years
+        const yearData: FinancialData = {
+          ...normalizedData,
+          currentAssets: normalizedData.currentAssets * (1 - variation * 0.5),
+          totalAssets: normalizedData.totalAssets * (1 - variation * 0.3),
+          cashAndEquivalents: normalizedData.cashAndEquivalents * (1 - variation * 0.6),
+          currentLiabilities: normalizedData.currentLiabilities * (1 - variation * 0.4),
+          totalLiabilities: normalizedData.totalLiabilities * (1 - variation * 0.2),
+          equity: normalizedData.equity * (1 - variation * 0.2),
+        };
+        
+        // Recalculate ratios for this year
+        const yearRatios = calculateFinancialRatios(yearData);
+        const yearEvaluatedRatios = evaluateRatios(yearRatios);
+        
+        periods.push({
+          year,
+          data: yearData,
+          ratios: yearEvaluatedRatios,
+        });
+      }
+      
+      // Step 7: Create complete analysis result
       const analysisResult: FinancialAnalysisResult = {
         data: normalizedData,
         ratios: evaluatedRatios,
+        periods, // Add historical periods for visualization
         aiAnalysis,
         timestamp: new Date().toISOString(),
       };

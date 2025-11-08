@@ -14,6 +14,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
+  ReferenceLine,
 } from "recharts";
 import type { FinancialAnalysisResult } from "@shared/schema";
 
@@ -22,42 +23,91 @@ interface VisualizationChartsProps {
 }
 
 export function VisualizationCharts({ result }: VisualizationChartsProps) {
-  const liquidityData = [
-    {
-      name: "Текущая ликвидность",
-      value: result.ratios.currentRatio.value,
-      benchmark: 2.0,
-    },
-    {
-      name: "Быстрая ликвидность",
-      value: result.ratios.quickRatio.value,
-      benchmark: 1.0,
-    },
-    {
-      name: "Абсолютная ликвидность",
-      value: result.ratios.cashRatio.value,
-      benchmark: 0.2,
-    },
-  ];
+  // Extract and filter periods to handle sparse/partial arrays safely
+  const periods = result.periods?.slice(0, 3).filter(Boolean) || [];
+  const hasHistoricalData = periods.length >= 3;
 
-  const stabilityData = [
-    {
-      name: "Коэф. автономии",
-      value: result.ratios.equityRatio.value,
-      benchmark: 0.5,
-    },
-    {
-      name: "Коэф. задолженности",
-      value: result.ratios.debtRatio.value,
-      benchmark: 0.5,
-    },
-    {
-      name: "Финансовый рычаг",
-      value: result.ratios.financialLeverageRatio.value,
-      benchmark: 1.0,
-    },
-  ];
+  // Prepare liquidity data with multi-year support
+  const liquidityData = hasHistoricalData
+    ? [
+        {
+          name: "Текущая ликвидность",
+          ...(periods[0] && { [periods[0].year]: periods[0].ratios.currentRatio.value }),
+          ...(periods[1] && { [periods[1].year]: periods[1].ratios.currentRatio.value }),
+          ...(periods[2] && { [periods[2].year]: periods[2].ratios.currentRatio.value }),
+        },
+        {
+          name: "Быстрая ликвидность",
+          ...(periods[0] && { [periods[0].year]: periods[0].ratios.quickRatio.value }),
+          ...(periods[1] && { [periods[1].year]: periods[1].ratios.quickRatio.value }),
+          ...(periods[2] && { [periods[2].year]: periods[2].ratios.quickRatio.value }),
+        },
+        {
+          name: "Абсолютная ликвидность",
+          ...(periods[0] && { [periods[0].year]: periods[0].ratios.cashRatio.value }),
+          ...(periods[1] && { [periods[1].year]: periods[1].ratios.cashRatio.value }),
+          ...(periods[2] && { [periods[2].year]: periods[2].ratios.cashRatio.value }),
+        },
+      ]
+    : [
+        {
+          name: "Текущая ликвидность",
+          value: result.ratios.currentRatio.value,
+          benchmark: 2.0,
+        },
+        {
+          name: "Быстрая ликвидность",
+          value: result.ratios.quickRatio.value,
+          benchmark: 1.0,
+        },
+        {
+          name: "Абсолютная ликвидность",
+          value: result.ratios.cashRatio.value,
+          benchmark: 0.2,
+        },
+      ];
 
+  // Prepare stability data with multi-year support
+  const stabilityData = hasHistoricalData
+    ? [
+        {
+          name: "Коэф. автономии",
+          ...(periods[0] && { [periods[0].year]: periods[0].ratios.equityRatio.value }),
+          ...(periods[1] && { [periods[1].year]: periods[1].ratios.equityRatio.value }),
+          ...(periods[2] && { [periods[2].year]: periods[2].ratios.equityRatio.value }),
+        },
+        {
+          name: "Коэф. задолженности",
+          ...(periods[0] && { [periods[0].year]: periods[0].ratios.debtRatio.value }),
+          ...(periods[1] && { [periods[1].year]: periods[1].ratios.debtRatio.value }),
+          ...(periods[2] && { [periods[2].year]: periods[2].ratios.debtRatio.value }),
+        },
+        {
+          name: "Финансовый рычаг",
+          ...(periods[0] && { [periods[0].year]: periods[0].ratios.financialLeverageRatio.value }),
+          ...(periods[1] && { [periods[1].year]: periods[1].ratios.financialLeverageRatio.value }),
+          ...(periods[2] && { [periods[2].year]: periods[2].ratios.financialLeverageRatio.value }),
+        },
+      ]
+    : [
+        {
+          name: "Коэф. автономии",
+          value: result.ratios.equityRatio.value,
+          benchmark: 0.5,
+        },
+        {
+          name: "Коэф. задолженности",
+          value: result.ratios.debtRatio.value,
+          benchmark: 0.5,
+        },
+        {
+          name: "Финансовый рычаг",
+          value: result.ratios.financialLeverageRatio.value,
+          benchmark: 1.0,
+        },
+      ];
+
+  // Radar data - use current year data only
   const radarData = [
     {
       metric: "Текущая ликвидность",
@@ -77,25 +127,79 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
     },
   ];
 
-  // Profitability data - only if profitability ratios exist
+  // Profitability data - with multi-year support if available
   const profitabilityData = [];
-  if (result.ratios.roa) {
-    profitabilityData.push({ name: "ROA", value: result.ratios.roa.value * 100 });
-  }
-  if (result.ratios.roe) {
-    profitabilityData.push({ name: "ROE", value: result.ratios.roe.value * 100 });
-  }
-  if (result.ratios.ros) {
-    profitabilityData.push({ name: "ROS", value: result.ratios.ros.value * 100 });
-  }
-  if (result.ratios.grossProfitMargin) {
-    profitabilityData.push({ name: "Валовая рент.", value: result.ratios.grossProfitMargin.value * 100 });
-  }
-  if (result.ratios.operatingProfitMargin) {
-    profitabilityData.push({ name: "Опер. рент.", value: result.ratios.operatingProfitMargin.value * 100 });
-  }
-  if (result.ratios.netProfitMargin) {
-    profitabilityData.push({ name: "Чистая рент.", value: result.ratios.netProfitMargin.value * 100 });
+  
+  if (hasHistoricalData) {
+    // Multi-year profitability
+    if (periods[0]?.ratios.roa) {
+      profitabilityData.push({
+        name: "ROA",
+        ...(periods[0] && periods[0].ratios.roa && { [periods[0].year]: periods[0].ratios.roa.value * 100 }),
+        ...(periods[1] && periods[1].ratios.roa && { [periods[1].year]: periods[1].ratios.roa.value * 100 }),
+        ...(periods[2] && periods[2].ratios.roa && { [periods[2].year]: periods[2].ratios.roa.value * 100 }),
+      });
+    }
+    if (periods[0]?.ratios.roe) {
+      profitabilityData.push({
+        name: "ROE",
+        ...(periods[0] && periods[0].ratios.roe && { [periods[0].year]: periods[0].ratios.roe.value * 100 }),
+        ...(periods[1] && periods[1].ratios.roe && { [periods[1].year]: periods[1].ratios.roe.value * 100 }),
+        ...(periods[2] && periods[2].ratios.roe && { [periods[2].year]: periods[2].ratios.roe.value * 100 }),
+      });
+    }
+    if (periods[0]?.ratios.ros) {
+      profitabilityData.push({
+        name: "ROS",
+        ...(periods[0] && periods[0].ratios.ros && { [periods[0].year]: periods[0].ratios.ros.value * 100 }),
+        ...(periods[1] && periods[1].ratios.ros && { [periods[1].year]: periods[1].ratios.ros.value * 100 }),
+        ...(periods[2] && periods[2].ratios.ros && { [periods[2].year]: periods[2].ratios.ros.value * 100 }),
+      });
+    }
+    if (periods[0]?.ratios.grossProfitMargin) {
+      profitabilityData.push({
+        name: "Валовая рент.",
+        ...(periods[0] && periods[0].ratios.grossProfitMargin && { [periods[0].year]: periods[0].ratios.grossProfitMargin.value * 100 }),
+        ...(periods[1] && periods[1].ratios.grossProfitMargin && { [periods[1].year]: periods[1].ratios.grossProfitMargin.value * 100 }),
+        ...(periods[2] && periods[2].ratios.grossProfitMargin && { [periods[2].year]: periods[2].ratios.grossProfitMargin.value * 100 }),
+      });
+    }
+    if (periods[0]?.ratios.operatingProfitMargin) {
+      profitabilityData.push({
+        name: "Опер. рент.",
+        ...(periods[0] && periods[0].ratios.operatingProfitMargin && { [periods[0].year]: periods[0].ratios.operatingProfitMargin.value * 100 }),
+        ...(periods[1] && periods[1].ratios.operatingProfitMargin && { [periods[1].year]: periods[1].ratios.operatingProfitMargin.value * 100 }),
+        ...(periods[2] && periods[2].ratios.operatingProfitMargin && { [periods[2].year]: periods[2].ratios.operatingProfitMargin.value * 100 }),
+      });
+    }
+    if (periods[0]?.ratios.netProfitMargin) {
+      profitabilityData.push({
+        name: "Чистая рент.",
+        ...(periods[0] && periods[0].ratios.netProfitMargin && { [periods[0].year]: periods[0].ratios.netProfitMargin.value * 100 }),
+        ...(periods[1] && periods[1].ratios.netProfitMargin && { [periods[1].year]: periods[1].ratios.netProfitMargin.value * 100 }),
+        ...(periods[2] && periods[2].ratios.netProfitMargin && { [periods[2].year]: periods[2].ratios.netProfitMargin.value * 100 }),
+      });
+    }
+  } else {
+    // Single year profitability
+    if (result.ratios.roa) {
+      profitabilityData.push({ name: "ROA", value: result.ratios.roa.value * 100 });
+    }
+    if (result.ratios.roe) {
+      profitabilityData.push({ name: "ROE", value: result.ratios.roe.value * 100 });
+    }
+    if (result.ratios.ros) {
+      profitabilityData.push({ name: "ROS", value: result.ratios.ros.value * 100 });
+    }
+    if (result.ratios.grossProfitMargin) {
+      profitabilityData.push({ name: "Валовая рент.", value: result.ratios.grossProfitMargin.value * 100 });
+    }
+    if (result.ratios.operatingProfitMargin) {
+      profitabilityData.push({ name: "Опер. рент.", value: result.ratios.operatingProfitMargin.value * 100 });
+    }
+    if (result.ratios.netProfitMargin) {
+      profitabilityData.push({ name: "Чистая рент.", value: result.ratios.netProfitMargin.value * 100 });
+    }
   }
 
   const hasProfitabilityData = profitabilityData.length > 0;
@@ -130,8 +234,21 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
                 }}
               />
               <Legend />
-              <Bar dataKey="value" fill="hsl(var(--chart-1))" name="Фактическое значение" />
-              <Bar dataKey="benchmark" fill="hsl(var(--chart-3))" name="Норматив" />
+              {hasHistoricalData ? (
+                <>
+                  {periods[0] && <Bar dataKey={periods[0].year} fill="hsl(var(--chart-1))" name={`${periods[0].year} год`} />}
+                  {periods[1] && <Bar dataKey={periods[1].year} fill="hsl(var(--chart-2))" name={`${periods[1].year} год`} />}
+                  {periods[2] && <Bar dataKey={periods[2].year} fill="hsl(var(--chart-5))" name={`${periods[2].year} год`} />}
+                  <ReferenceLine y={2.0} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label="Норматив (Текущая)" />
+                  <ReferenceLine y={1.0} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label="Норматив (Быстрая)" />
+                  <ReferenceLine y={0.2} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label="Норматив (Абс.)" />
+                </>
+              ) : (
+                <>
+                  <Bar dataKey="value" fill="hsl(var(--chart-1))" name="Фактическое значение" />
+                  <Bar dataKey="benchmark" fill="hsl(var(--chart-3))" name="Норматив" />
+                </>
+              )}
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -165,8 +282,20 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
                 }}
               />
               <Legend />
-              <Bar dataKey="value" fill="hsl(var(--chart-2))" name="Фактическое значение" />
-              <Bar dataKey="benchmark" fill="hsl(var(--chart-3))" name="Норматив" />
+              {hasHistoricalData ? (
+                <>
+                  {periods[0] && <Bar dataKey={periods[0].year} fill="hsl(var(--chart-1))" name={`${periods[0].year} год`} />}
+                  {periods[1] && <Bar dataKey={periods[1].year} fill="hsl(var(--chart-2))" name={`${periods[1].year} год`} />}
+                  {periods[2] && <Bar dataKey={periods[2].year} fill="hsl(var(--chart-5))" name={`${periods[2].year} год`} />}
+                  <ReferenceLine y={0.5} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label="Норматив" />
+                  <ReferenceLine y={1.0} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label="Норматив (Рычаг)" />
+                </>
+              ) : (
+                <>
+                  <Bar dataKey="value" fill="hsl(var(--chart-2))" name="Фактическое значение" />
+                  <Bar dataKey="benchmark" fill="hsl(var(--chart-3))" name="Норматив" />
+                </>
+              )}
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -205,7 +334,15 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
                   formatter={(value: number) => [`${value.toFixed(2)}%`, 'Значение']}
                 />
                 <Legend />
-                <Bar dataKey="value" fill="hsl(var(--chart-4))" name="Рентабельность (%)" />
+                {hasHistoricalData ? (
+                  <>
+                    {periods[0] && <Bar dataKey={periods[0].year} fill="hsl(var(--chart-1))" name={`${periods[0].year} год`} />}
+                    {periods[1] && <Bar dataKey={periods[1].year} fill="hsl(var(--chart-2))" name={`${periods[1].year} год`} />}
+                    {periods[2] && <Bar dataKey={periods[2].year} fill="hsl(var(--chart-5))" name={`${periods[2].year} год`} />}
+                  </>
+                ) : (
+                  <Bar dataKey="value" fill="hsl(var(--chart-4))" name="Рентабельность (%)" />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
