@@ -136,11 +136,13 @@ export async function generateFinancialAnalysis(
   "weaknesses": ["массив из 3-5 слабых сторон или рисков с указанием показателей"],
   "recommendations": {
     "items": ["массив из 4-6 конкретных рекомендаций для улучшения кредитоспособности"],
-    "creditDecision": "✅ Одобрить / ❌ Отклонить / ⚠️ Условно одобрить",
+    "creditDecision": "Одобрить / Отклонить / Условно одобрить (БЕЗ ИСПОЛЬЗОВАНИЯ ЭМОДЗИ)",
     "comment": "Общая оценка кредитоспособности и условия кредитования (2-3 предложения)"
   },
   "riskLevel": "low/medium/high"
 }
+
+ВАЖНО: НЕ ИСПОЛЬЗУЙ ЭМОДЗИ В ОТВЕТЕ. Используй только текст.
 
 ВАЖНО:
 - Все анализы должны содержать конкретные числовые показатели из предоставленных данных
@@ -237,7 +239,7 @@ export async function generateFinancialAnalysis(
           : ["Рекомендуется регулярный мониторинг финансовых показателей"],
         creditDecision: result.recommendations?.creditDecision && typeof result.recommendations.creditDecision === "string"
           ? result.recommendations.creditDecision
-          : determineRiskLevel(ratios) === "low" ? "✅ Одобрить" : determineRiskLevel(ratios) === "high" ? "❌ Отклонить" : "⚠️ Условно одобрить",
+          : determineRiskLevel(ratios) === "low" ? "Одобрить" : determineRiskLevel(ratios) === "high" ? "Отклонить" : "Условно одобрить",
         comment: result.recommendations?.comment && typeof result.recommendations.comment === "string"
           ? result.recommendations.comment
           : "Решение основано на текущих финансовых показателях и требует дополнительной проверки обеспечения"
@@ -337,13 +339,13 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
   let creditComment: string;
   
   if (riskLevel === "low") {
-    creditDecision = "✅ Одобрить";
+    creditDecision = "Одобрить";
     creditComment = `Компания демонстрирует устойчивое финансовое положение с коэффициентом текущей ликвидности ${ratios.currentRatio.toFixed(2)} и коэффициентом автономии ${ratios.equityRatio.toFixed(2)}. Кредитные риски оцениваются как низкие.`;
   } else if (riskLevel === "medium") {
-    creditDecision = "⚠️ Условно одобрить";
+    creditDecision = "Условно одобрить";
     creditComment = `Финансовое состояние компании оценивается как удовлетворительное. Рекомендуется кредитование с дополнительным обеспечением и регулярным мониторингом показателей ликвидности и финансовой устойчивости.`;
   } else {
-    creditDecision = "❌ Отклонить";
+    creditDecision = "Отклонить";
     creditComment = `Финансовые показатели компании указывают на высокие кредитные риски. Коэффициенты ликвидности и финансовой устойчивости ниже нормативных значений. Рекомендуется отклонить кредитную заявку до улучшения финансового положения.`;
   }
 

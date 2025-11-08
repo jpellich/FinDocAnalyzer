@@ -144,11 +144,24 @@ function generateTextReport(result: FinancialAnalysisResult): string {
 
   report += `
 ───────────────────────────────────────────────────────────────────────
-AI АНАЛИЗ
+AI АНАЛИЗ (БАНКОВСКИЙ КРЕДИТНЫЙ ОТЧЁТ)
 ───────────────────────────────────────────────────────────────────────
 
-РЕЗЮМЕ:
-${result.aiAnalysis.summary}
+ОТРАСЛЬ: ${result.aiAnalysis.industrySector.description}
+
+ФИНАНСОВОЕ СОСТОЯНИЕ:
+
+Ликвидность:
+${result.aiAnalysis.financialCondition.liquidity.analysis}
+Вывод: ${result.aiAnalysis.financialCondition.liquidity.conclusion}
+
+Финансовая устойчивость:
+${result.aiAnalysis.financialCondition.stability.analysis}
+Вывод: ${result.aiAnalysis.financialCondition.stability.conclusion}
+
+Рентабельность:
+${result.aiAnalysis.financialCondition.profitability.analysis}
+Вывод: ${result.aiAnalysis.financialCondition.profitability.conclusion}
 
 УРОВЕНЬ РИСКА: ${result.aiAnalysis.riskLevel.toUpperCase()}
 
@@ -159,7 +172,11 @@ ${result.aiAnalysis.strengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 ${result.aiAnalysis.weaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
 
 РЕКОМЕНДАЦИИ:
-${result.aiAnalysis.recommendations.map((r, i) => `  ${i + 1}. ${r}`).join('\n')}
+${result.aiAnalysis.recommendations.items.map((r, i) => `  ${i + 1}. ${r}`).join('\n')}
+
+КРЕДИТНОЕ РЕШЕНИЕ:
+${result.aiAnalysis.recommendations.creditDecision}
+${result.aiAnalysis.recommendations.comment ? '\nКомментарий: ' + result.aiAnalysis.recommendations.comment : ''}
 
 ═══════════════════════════════════════════════════════════════════════
 Конец отчёта
