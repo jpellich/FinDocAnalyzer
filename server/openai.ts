@@ -4,8 +4,10 @@ import type { FinancialData, FinancialRatios } from "@shared/schema";
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 // Reference: javascript_openai blueprint integration
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "" 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "",
+  timeout: 300000, // 5 minutes timeout
+  maxRetries: 2,
 });
 
 interface AIAnalysisResult {
@@ -148,7 +150,7 @@ export async function generateFinancialAnalysis(
 - Весь анализ на русском языке`;
 
     console.log("Sending request to OpenAI API...");
-    
+
     const response = await openai.chat.completions.create({
       model: "gpt-5",
       messages: [
@@ -169,7 +171,7 @@ export async function generateFinancialAnalysis(
 
     const choice = response.choices[0];
     const content = choice?.message?.content;
-    
+
     // Check if response was cut off due to token limit
     if (choice?.finish_reason === "length") {
       console.error("OpenAI response exceeded token limit (finish_reason: length)");
@@ -177,7 +179,7 @@ export async function generateFinancialAnalysis(
       console.warn("Falling back to rule-based analysis");
       return generateFallbackAnalysis(data, ratios);
     }
-    
+
     if (!content) {
       console.warn("Empty response from OpenAI API, using fallback analysis");
       console.warn("Finish reason:", choice?.finish_reason);
@@ -190,12 +192,12 @@ export async function generateFinancialAnalysis(
     const result = JSON.parse(content);
 
     // Use sectorName (fullOkvedName) when result.industryAnalysis.sector is empty
-    const fullOkvedName = sectorName; 
+    const fullOkvedName = sectorName;
 
     // Validate and sanitize the response with strict schema checking
     const validated: AIAnalysisResult = {
       summary: typeof result.summary === "string" && result.summary.length > 0
-        ? result.summary 
+        ? result.summary
         : "Анализ финансового состояния компании основан на рассчитанных показателях.",
       strengths: Array.isArray(result.strengths) && result.strengths.length > 0
         ? result.strengths.filter((s: any) => typeof s === "string")
@@ -206,10 +208,10 @@ export async function generateFinancialAnalysis(
       recommendations: Array.isArray(result.recommendations) && result.recommendations.length > 0
         ? result.recommendations.filter((r: any) => typeof r === "string")
         : ["Рекомендуется регулярный мониторинг финансовых показателей"],
-      riskLevel: ["low", "medium", "high"].includes(result.riskLevel) 
-        ? result.riskLevel 
+      riskLevel: ["low", "medium", "high"].includes(result.riskLevel)
+        ? result.riskLevel
         : determineRiskLevel(ratios),
-      creditworthinessAnalysis: result.creditworthinessAnalysis && 
+      creditworthinessAnalysis: result.creditworthinessAnalysis &&
         typeof result.creditworthinessAnalysis === "object" ? {
           borrowerReliability: typeof result.creditworthinessAnalysis.borrowerReliability === "string"
             ? result.creditworthinessAnalysis.borrowerReliability
@@ -221,7 +223,7 @@ export async function generateFinancialAnalysis(
             ? result.creditworthinessAnalysis.creditRating
             : ""
         } : undefined,
-      industryAnalysis: result.industryAnalysis && 
+      industryAnalysis: result.industryAnalysis &&
         typeof result.industryAnalysis === "object" ? {
           sector: typeof result.industryAnalysis.sector === "string" && result.industryAnalysis.sector.length > 0
             ? result.industryAnalysis.sector
@@ -238,19 +240,19 @@ export async function generateFinancialAnalysis(
     return validated;
   } catch (error) {
     console.error("Error generating AI analysis:", error);
-    
+
     // Log more details about the error
     if (error instanceof Error) {
       console.error("Error name:", error.name);
       console.error("Error message:", error.message);
       console.error("Error stack:", error.stack);
     }
-    
+
     // Check if it's an OpenAI API error
     if (typeof error === 'object' && error !== null && 'error' in error) {
       console.error("OpenAI API error details:", JSON.stringify(error, null, 2));
     }
-    
+
     console.warn("Falling back to rule-based analysis");
 
     // Return fallback analysis instead of throwing
@@ -304,8 +306,8 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
   if (riskLevel === "low") creditRating = "A";
   else if (riskLevel === "high") creditRating = "C";
 
-  const debtCoverageRatio = ratios.workingCapital > 0 && data.currentLiabilities > 0 
-    ? (ratios.workingCapital / data.currentLiabilities).toFixed(2) 
+  const debtCoverageRatio = ratios.workingCapital > 0 && data.currentLiabilities > 0
+    ? (ratios.workingCapital / data.currentLiabilities).toFixed(2)
     : "0";
 
   // Map common OKVED codes to sector names
@@ -321,7 +323,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       "08.1": "Добыча камня, песка и глины",
       "08.01": "Добыча камня, песка и глины",
       "08.02": "Добыча камня, песка и глины",
-      "08.9": "Добыча полезных ископаемых, не включенных в другие группировки",
+      "08.9": "Добыча минерального сырья для химической промышленности и производства минеральных удобрений",
       "08.91": "Добыча минерального сырья для химической промышленности и производства минеральных удобрений",
       "08.92": "Добыча и агломерация торфа",
       "08.93": "Добыча соли",
@@ -416,7 +418,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
 
     // Normalize the code (trim)
     const normalizedCode = okvedCode.trim();
-    
+
     // Try exact match first (71.12.2, 08.02, etc.)
     if (okvedMap[normalizedCode]) {
       return `${okvedMap[normalizedCode]}`;
@@ -424,7 +426,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
 
     // Try matching progressively shorter codes
     const parts = normalizedCode.split('.');
-    
+
     // For 71.12.2, try: 71.12.2 -> 71.12 -> 71.1 -> 71
     if (parts.length === 3) {
       // Try 71.12
@@ -433,7 +435,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
         return `${okvedMap[twoLevel]}`;
       }
     }
-    
+
     if (parts.length >= 2) {
       // Try 71.1 (first digit of second part)
       const oneDigitSecond = `${parts[0]}.${parts[1].charAt(0)}`;
