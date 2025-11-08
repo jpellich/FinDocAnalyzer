@@ -229,11 +229,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✓ Analysis saved with ID: ${saved.id}`);
 
       // Return the complete analysis
-      res.json({
+      const response = {
         success: true,
         id: saved.id,
         result: analysisResult,
-      });
+      };
+      
+      console.log(`Sending response to client, result size: ${JSON.stringify(response).length} bytes`);
+      res.json(response);
+      console.log(`✓ Response sent to client`);
     } catch (error) {
       console.error("Error processing file:", error);
       
