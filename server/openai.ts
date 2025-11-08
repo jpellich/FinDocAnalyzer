@@ -72,12 +72,21 @@ export async function generateFinancialAnalysis(
       return generateFallbackAnalysis(data, ratios);
     }
 
+    console.log("Starting AI analysis with OpenAI API...");
+
     // Get full sector name from OKVED code
     let okvedInfo = '';
     let sectorName = ''; // This will hold the full sector name from AI
     if (data.okved) {
-      sectorName = await getOkvedSectorName(data.okved);
-      okvedInfo = `\n- ${sectorName}`;
+      try {
+        sectorName = await getOkvedSectorName(data.okved);
+        okvedInfo = `\n- ${sectorName}`;
+        console.log(`OKVED sector resolved: ${sectorName}`);
+      } catch (error) {
+        console.warn("Error getting OKVED sector name, using fallback:", error);
+        sectorName = `Отрасль по коду ${data.okved}`;
+        okvedInfo = `\n- ${sectorName}`;
+      }
     }
 
     const companyInfo = data.companyName ? `\nНаименование компании: ${data.companyName}` : '';
@@ -138,6 +147,8 @@ export async function generateFinancialAnalysis(
 - Рекомендации должны быть практичными и направленными на улучшение кредитоспособности
 - Весь анализ на русском языке`;
 
+    console.log("Sending request to OpenAI API...");
+    
     const response = await openai.chat.completions.create({
       model: "gpt-5",
       messages: [
@@ -154,11 +165,16 @@ export async function generateFinancialAnalysis(
       max_completion_tokens: 4096,
     });
 
+    console.log("Received response from OpenAI API");
+
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      console.warn("Empty response from OpenAI, using fallback");
+      console.warn("Empty response from OpenAI API, using fallback analysis");
+      console.warn("Response object:", JSON.stringify(response, null, 2));
       return generateFallbackAnalysis(data, ratios);
     }
+
+    console.log("Parsing OpenAI response...");
 
     const result = JSON.parse(content);
 
@@ -211,6 +227,19 @@ export async function generateFinancialAnalysis(
     return validated;
   } catch (error) {
     console.error("Error generating AI analysis:", error);
+    
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    
+    // Check if it's an OpenAI API error
+    if (typeof error === 'object' && error !== null && 'error' in error) {
+      console.error("OpenAI API error details:", JSON.stringify(error, null, 2));
+    }
+    
     console.warn("Falling back to rule-based analysis");
 
     // Return fallback analysis instead of throwing
