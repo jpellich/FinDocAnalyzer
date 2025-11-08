@@ -4,10 +4,8 @@ import type { FinancialData, FinancialRatios } from "@shared/schema";
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 // Reference: javascript_openai blueprint integration
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-  timeout: 300000, // 5 minutes timeout
-  maxRetries: 2,
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY 
 });
 
 interface AIAnalysisResult {
@@ -28,41 +26,6 @@ interface AIAnalysisResult {
   };
 }
 
-/**
- * Get sector name from OKVED code using OpenAI
- */
-async function getOkvedSectorName(okvedCode: string): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
-    return `Отрасль по ОКВЭД ${okvedCode}`;
-  }
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: "Вы эксперт по классификации ОКВЭД (Общероссийский классификатор видов экономической деятельности). Предоставляйте точные названия видов деятельности."
-        },
-        {
-          role: "user",
-          content: `Какой вид экономической деятельности соответствует коду ОКВЭД: ${okvedCode}? Ответьте кратко, только название отрасли без дополнительных объяснений. Формат ответа: "ОКВЭД ${okvedCode} - [Название отрасли]"`
-        }
-      ],
-      max_completion_tokens: 200,
-    });
-
-    const content = response.choices[0]?.message?.content?.trim();
-    if (content) {
-      return content;
-    }
-    return `Отрасль по ОКВЭД ${okvedCode}`;
-  } catch (error) {
-    console.error("Error getting OKVED sector name:", error);
-    return `Отрасль по ОКВЭД ${okvedCode}`;
-  }
-}
-
 export async function generateFinancialAnalysis(
   data: FinancialData,
   ratios: FinancialRatios
@@ -74,27 +37,11 @@ export async function generateFinancialAnalysis(
       return generateFallbackAnalysis(data, ratios);
     }
 
-    console.log("Starting AI analysis with OpenAI API...");
-
-    // Get full sector name from OKVED code
-    let okvedInfo = '';
-    let sectorName = ''; // This will hold the full sector name from AI
-    if (data.okved) {
-      try {
-        sectorName = await getOkvedSectorName(data.okved);
-        okvedInfo = `\n- ${sectorName}`;
-        console.log(`OKVED sector resolved: ${sectorName}`);
-      } catch (error) {
-        console.warn("Error getting OKVED sector name, using fallback:", error);
-        sectorName = `Отрасль по коду ${data.okved}`;
-        okvedInfo = `\n- ${sectorName}`;
-      }
-    }
-
+    const okvedInfo = data.okved ? `\n- ОКВЭД 2: ${data.okved}` : '';
     const companyInfo = data.companyName ? `\nНаименование компании: ${data.companyName}` : '';
     const revenueInfo = data.revenue ? `\n- Выручка: ${data.revenue.toLocaleString()}` : '';
     const netIncomeInfo = data.netIncome ? `\n- Чистая прибыль: ${data.netIncome.toLocaleString()}` : '';
-
+    
     const profitabilityInfo = ratios.roa || ratios.roe || ratios.ros ? `
 
 ПОКАЗАТЕЛИ РЕНТАБЕЛЬНОСТИ:${ratios.roa ? `\n- ROA (рентабельность активов): ${(ratios.roa * 100).toFixed(2)}%` : ''}${ratios.roe ? `\n- ROE (рентабельность капитала): ${(ratios.roe * 100).toFixed(2)}%` : ''}${ratios.ros ? `\n- ROS (рентабельность продаж): ${(ratios.ros * 100).toFixed(2)}%` : ''}${ratios.grossProfitMargin ? `\n- Валовая рентабельность: ${(ratios.grossProfitMargin * 100).toFixed(2)}%` : ''}${ratios.netProfitMargin ? `\n- Чистая рентабельность: ${(ratios.netProfitMargin * 100).toFixed(2)}%` : ''}` : '';
@@ -136,7 +83,7 @@ export async function generateFinancialAnalysis(
     "creditRating": "итоговый кредитный рейтинг компании с обоснованием: A+ (отлично), A (хорошо), B (удовлетворительно), C (ниже среднего), D (высокий риск). Укажите ключевые факторы рейтинга"
   },
   "industryAnalysis": {
-    "sector": "${sectorName ? `краткое описание отрасли "${sectorName}": основные характеристики, текущее состояние рынка (1-2 предложения)` : 'общая характеристика отрасли на основе профиля активов (1-2 предложения)'}",
+    "sector": "${data.okved ? `краткое описание отрасли по ОКВЭД ${data.okved}: основные характеристики, текущее состояние рынка (1-2 предложения)` : 'общая характеристика отрасли на основе профиля активов (1-2 предложения)'}",
     "industryRisks": ["массив из 4-6 отраслевых рисков, которые могут повлиять на способность компании погашать долги: макроэкономические факторы, конкуренция, регуляторные изменения, сезонность, технологические изменения"],
     "competitivePosition": "оценка конкурентного положения компании в отрасли на основе финансовых показателей (1-2 предложения)"
   }
@@ -148,8 +95,6 @@ export async function generateFinancialAnalysis(
 - Отраслевые риски должны быть специфичными для данного сектора экономики
 - Рекомендации должны быть практичными и направленными на улучшение кредитоспособности
 - Весь анализ на русском языке`;
-
-    console.log("Sending request to OpenAI API...");
 
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -164,40 +109,21 @@ export async function generateFinancialAnalysis(
         }
       ],
       response_format: { type: "json_object" },
-      max_completion_tokens: 16384,
+      max_completion_tokens: 4096,
     });
 
-    console.log("Received response from OpenAI API");
-
-    const choice = response.choices[0];
-    const content = choice?.message?.content;
-
-    // Check if response was cut off due to token limit
-    if (choice?.finish_reason === "length") {
-      console.error("OpenAI response exceeded token limit (finish_reason: length)");
-      console.error("Consider increasing max_completion_tokens or simplifying the prompt");
-      console.warn("Falling back to rule-based analysis");
-      return generateFallbackAnalysis(data, ratios);
-    }
-
+    const content = response.choices[0]?.message?.content;
     if (!content) {
-      console.warn("Empty response from OpenAI API, using fallback analysis");
-      console.warn("Finish reason:", choice?.finish_reason);
-      console.warn("Response object:", JSON.stringify(response, null, 2));
+      console.warn("Empty response from OpenAI, using fallback");
       return generateFallbackAnalysis(data, ratios);
     }
-
-    console.log("Parsing OpenAI response...");
 
     const result = JSON.parse(content);
-
-    // Use sectorName (fullOkvedName) when result.industryAnalysis.sector is empty
-    const fullOkvedName = sectorName;
 
     // Validate and sanitize the response with strict schema checking
     const validated: AIAnalysisResult = {
       summary: typeof result.summary === "string" && result.summary.length > 0
-        ? result.summary
+        ? result.summary 
         : "Анализ финансового состояния компании основан на рассчитанных показателях.",
       strengths: Array.isArray(result.strengths) && result.strengths.length > 0
         ? result.strengths.filter((s: any) => typeof s === "string")
@@ -208,10 +134,10 @@ export async function generateFinancialAnalysis(
       recommendations: Array.isArray(result.recommendations) && result.recommendations.length > 0
         ? result.recommendations.filter((r: any) => typeof r === "string")
         : ["Рекомендуется регулярный мониторинг финансовых показателей"],
-      riskLevel: ["low", "medium", "high"].includes(result.riskLevel)
-        ? result.riskLevel
+      riskLevel: ["low", "medium", "high"].includes(result.riskLevel) 
+        ? result.riskLevel 
         : determineRiskLevel(ratios),
-      creditworthinessAnalysis: result.creditworthinessAnalysis &&
+      creditworthinessAnalysis: result.creditworthinessAnalysis && 
         typeof result.creditworthinessAnalysis === "object" ? {
           borrowerReliability: typeof result.creditworthinessAnalysis.borrowerReliability === "string"
             ? result.creditworthinessAnalysis.borrowerReliability
@@ -223,11 +149,11 @@ export async function generateFinancialAnalysis(
             ? result.creditworthinessAnalysis.creditRating
             : ""
         } : undefined,
-      industryAnalysis: result.industryAnalysis &&
+      industryAnalysis: result.industryAnalysis && 
         typeof result.industryAnalysis === "object" ? {
-          sector: typeof result.industryAnalysis.sector === "string" && result.industryAnalysis.sector.length > 0
+          sector: typeof result.industryAnalysis.sector === "string"
             ? result.industryAnalysis.sector
-            : (fullOkvedName || ""), // Use fullOkvedName if AI sector is empty
+            : "",
           industryRisks: Array.isArray(result.industryAnalysis.industryRisks)
             ? result.industryAnalysis.industryRisks.filter((r: any) => typeof r === "string")
             : [],
@@ -240,21 +166,8 @@ export async function generateFinancialAnalysis(
     return validated;
   } catch (error) {
     console.error("Error generating AI analysis:", error);
-
-    // Log more details about the error
-    if (error instanceof Error) {
-      console.error("Error name:", error.name);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-    }
-
-    // Check if it's an OpenAI API error
-    if (typeof error === 'object' && error !== null && 'error' in error) {
-      console.error("OpenAI API error details:", JSON.stringify(error, null, 2));
-    }
-
     console.warn("Falling back to rule-based analysis");
-
+    
     // Return fallback analysis instead of throwing
     return generateFallbackAnalysis(data, ratios);
   }
@@ -265,9 +178,9 @@ export async function generateFinancialAnalysis(
  */
 function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios): AIAnalysisResult {
   const riskLevel = determineRiskLevel(ratios);
-
+  
   const summary = `Финансовый анализ показывает коэффициент текущей ликвидности ${ratios.currentRatio.toFixed(2)}, коэффициент автономии ${ratios.equityRatio.toFixed(2)}. Общий уровень риска оценивается как ${riskLevel === "low" ? "низкий" : riskLevel === "medium" ? "средний" : "высокий"}.`;
-
+  
   const strengths: string[] = [];
   const weaknesses: string[] = [];
   const recommendations: string[] = [];
@@ -300,163 +213,15 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
   if (recommendations.length === 0) {
     recommendations.push("Продолжать мониторинг финансовых показателей для поддержания стабильности");
   }
-
+  
   // Generate basic creditworthiness analysis
   let creditRating = "B";
   if (riskLevel === "low") creditRating = "A";
   else if (riskLevel === "high") creditRating = "C";
-
-  const debtCoverageRatio = ratios.workingCapital > 0 && data.currentLiabilities > 0
-    ? (ratios.workingCapital / data.currentLiabilities).toFixed(2)
+  
+  const debtCoverageRatio = ratios.workingCapital > 0 && data.currentLiabilities > 0 
+    ? (ratios.workingCapital / data.currentLiabilities).toFixed(2) 
     : "0";
-
-  // Map common OKVED codes to sector names
-  const getOkvedSectorNameLocal = (okvedCode: string): string => {
-    const okvedMap: Record<string, string> = {
-      "01": "Растениеводство и животноводство, охота и предоставление соответствующих услуг",
-      "02": "Лесоводство и лесозаготовки",
-      "03": "Рыболовство и рыбоводство",
-      "05": "Добыча угля",
-      "06": "Добыча сырой нефти и природного газа",
-      "07": "Добыча металлических руд",
-      "08": "Добыча прочих полезных ископаемых",
-      "08.1": "Добыча камня, песка и глины",
-      "08.01": "Добыча камня, песка и глины",
-      "08.02": "Добыча камня, песка и глины",
-      "08.9": "Добыча минерального сырья для химической промышленности и производства минеральных удобрений",
-      "08.91": "Добыча минерального сырья для химической промышленности и производства минеральных удобрений",
-      "08.92": "Добыча и агломерация торфа",
-      "08.93": "Добыча соли",
-      "08.99": "Добыча прочих полезных ископаемых, не включенных в другие группировки",
-      "09": "Предоставление услуг в области добычи полезных ископаемых",
-      "10": "Производство пищевых продуктов",
-      "11": "Производство напитков",
-      "12": "Производство табачных изделий",
-      "13": "Производство текстильных изделий",
-      "14": "Производство одежды",
-      "15": "Производство кожи и изделий из кожи",
-      "16": "Обработка древесины и производство изделий из дерева",
-      "17": "Производство бумаги и бумажных изделий",
-      "18": "Деятельность полиграфическая и копирование носителей информации",
-      "19": "Производство кокса и нефтепродуктов",
-      "20": "Производство химических веществ и химических продуктов",
-      "21": "Производство лекарственных средств и материалов",
-      "22": "Производство резиновых и пластмассовых изделий",
-      "23": "Производство прочей неметаллической минеральной продукции",
-      "24": "Производство металлургическое",
-      "25": "Производство готовых металлических изделий",
-      "26": "Производство компьютеров, электронных и оптических изделий",
-      "27": "Производство электрического оборудования",
-      "28": "Производство машин и оборудования",
-      "29": "Производство автотранспортных средств, прицепов и полуприцепов",
-      "30": "Производство прочих транспортных средств и оборудования",
-      "31": "Производство мебели",
-      "32": "Производство прочих готовых изделий",
-      "33": "Ремонт и монтаж машин и оборудования",
-      "35": "Обеспечение электрической энергией, газом и паром",
-      "36": "Забор, очистка и распределение воды",
-      "37": "Сбор и обработка сточных вод",
-      "38": "Сбор, обработка и утилизация отходов",
-      "39": "Предоставление услуг в области ликвидации загрязнений",
-      "41": "Строительство зданий",
-      "42": "Строительство инженерных сооружений",
-      "43": "Работы строительные специализированные",
-      "45": "Торговля оптовая и розничная автотранспортными средствами",
-      "46": "Торговля оптовая",
-      "47": "Торговля розничная",
-      "49": "Деятельность сухопутного и трубопроводного транспорта",
-      "50": "Деятельность водного транспорта",
-      "51": "Деятельность воздушного и космического транспорта",
-      "52": "Складское хозяйство и вспомогательная транспортная деятельность",
-      "53": "Деятельность почтовой связи и курьерская деятельность",
-      "55": "Деятельность по предоставлению мест для временного проживания",
-      "56": "Деятельность по предоставлению продуктов питания и напитков",
-      "58": "Деятельность издательская",
-      "59": "Производство кинофильмов, видеофильмов и телевизионных программ",
-      "60": "Деятельность в области телевизионного и радиовещания",
-      "61": "Деятельность в сфере телекоммуникаций",
-      "62": "Разработка компьютерного программного обеспечения",
-      "63": "Деятельность в области информационных технологий",
-      "64": "Деятельность по предоставлению финансовых услуг",
-      "65": "Страхование, перестрахование, деятельность негосударственных пенсионных фондов",
-      "66": "Деятельность вспомогательная в сфере финансовых услуг и страхования",
-      "68": "Операции с недвижимым имуществом",
-      "69": "Деятельность в области права и бухгалтерского учета",
-      "70": "Деятельность головных офисов и консультирование по вопросам управления",
-      "71": "Деятельность в области архитектуры и инженерно-технического проектирования",
-      "71.1": "Деятельность в области архитектуры и инженерно-технического проектирования",
-      "71.11": "Деятельность в области архитектуры",
-      "71.12": "Деятельность в области инженерных изысканий, инженерно-технического проектирования",
-      "71.12.1": "Инженерные изыскания для строительства зданий и сооружений",
-      "71.12.2": "Деятельность в области инженерно-технического проектирования",
-      "71.12.3": "Производство геодезических и картографических работ",
-      "72": "Научные исследования и разработки",
-      "73": "Деятельность рекламная и исследование конъюнктуры рынка",
-      "74": "Деятельность профессиональная научная и техническая прочая",
-      "75": "Деятельность ветеринарная",
-      "77": "Аренда и лизинг",
-      "78": "Деятельность по трудоустройству и подбору персонала",
-      "79": "Деятельность туристических агентств и прочих организаций",
-      "80": "Деятельность по обеспечению безопасности и проведению расследований",
-      "81": "Деятельность по обслуживанию зданий и территорий",
-      "82": "Деятельность административно-хозяйственная, вспомогательная",
-      "84": "Деятельность органов государственного управления",
-      "85": "Образование",
-      "86": "Деятельность в области здравоохранения",
-      "87": "Деятельность по уходу с обеспечением проживания",
-      "88": "Предоставление социальных услуг без обеспечения проживания",
-      "90": "Деятельность творческая, деятельность в области искусства",
-      "91": "Деятельность библиотек, архивов, музеев",
-      "92": "Деятельность по организации и проведению азартных игр и заключению пари",
-      "93": "Деятельность в области спорта, отдыха и развлечений",
-      "94": "Деятельность общественных организаций",
-      "95": "Ремонт компьютеров, предметов личного потребления",
-      "96": "Деятельность по предоставлению прочих персональных услуг",
-      "97": "Деятельность домашних хозяйств с наемными работниками",
-      "99": "Деятельность экстерриториальных организаций и органов"
-    };
-
-    // Normalize the code (trim)
-    const normalizedCode = okvedCode.trim();
-
-    // Try exact match first (71.12.2, 08.02, etc.)
-    if (okvedMap[normalizedCode]) {
-      return `${okvedMap[normalizedCode]}`;
-    }
-
-    // Try matching progressively shorter codes
-    const parts = normalizedCode.split('.');
-
-    // For 71.12.2, try: 71.12.2 -> 71.12 -> 71.1 -> 71
-    if (parts.length === 3) {
-      // Try 71.12
-      const twoLevel = `${parts[0]}.${parts[1]}`;
-      if (okvedMap[twoLevel]) {
-        return `${okvedMap[twoLevel]}`;
-      }
-    }
-
-    if (parts.length >= 2) {
-      // Try 71.1 (first digit of second part)
-      const oneDigitSecond = `${parts[0]}.${parts[1].charAt(0)}`;
-      if (okvedMap[oneDigitSecond]) {
-        return `${okvedMap[oneDigitSecond]}`;
-      }
-    }
-
-    // Try matching the main section code (first 2 digits)
-    // For codes like "71.12.2", "08.1" or "08.02", try "71" or "08"
-    const shortCode = parts[0];
-    if (okvedMap[shortCode]) {
-      return `${okvedMap[shortCode]}`;
-    }
-
-    return `Отрасль по коду ${normalizedCode}`;
-  };
-
-  const fallbackSectorName = data.okved ? getOkvedSectorNameLocal(data.okved) : "Отрасль не указана";
-
-  console.log(`Fallback OKVED sector name: "${fallbackSectorName}" for code: "${data.okved}"`);
 
   return {
     summary,
@@ -470,7 +235,7 @@ function generateFallbackAnalysis(data: FinancialData, ratios: FinancialRatios):
       creditRating: `Кредитный рейтинг: ${creditRating}. ${creditRating === "A" ? "Низкий кредитный риск, высокая вероятность выполнения обязательств." : creditRating === "B" ? "Средний кредитный риск, требуется мониторинг финансового состояния." : "Повышенный кредитный риск, рекомендуется дополнительное обеспечение."}`
     },
     industryAnalysis: {
-      sector: fallbackSectorName,
+      sector: data.okved ? `Отрасль по ОКВЭД ${data.okved}` : "Отрасль не указана в документах",
       industryRisks: [
         "Макроэкономические риски: изменение процентных ставок и инфляции",
         "Рыночные риски: колебания спроса и конкуренция",

@@ -72,23 +72,15 @@ export default function Home() {
     onError: (error) => {
       console.error("Error processing file:", error);
 
-      let errorMessage = "Не удалось обработать файл. Пожалуйста, попробуйте снова.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        // Add helpful context for common errors
-        if (error.message.includes("fetch")) {
-          errorMessage += "\n\nВозможные причины:\n• Проблема с подключением к серверу\n• API ключ OpenAI требует обновления\n• Превышено время ожидания запроса";
-        }
-      }
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Не удалось обработать файл. Пожалуйста, попробуйте снова.";
 
       toast({
         title: "Ошибка обработки",
         description: errorMessage,
         variant: "destructive",
         className: "whitespace-pre-line",
-        duration: 7000,
       });
 
       setProgress(0);
