@@ -72,12 +72,27 @@ export async function generateFinancialAnalysis(
       return generateFallbackAnalysis(data, ratios);
     }
 
-    // Get full sector name from OKVED code
+    console.log('Starting AI analysis with OpenAI API...');
+    
+    // Get full sector name from OKVED code with timeout
     let okvedInfo = '';
     let sectorName = '';
     if (data.okved) {
-      sectorName = await getOkvedSectorName(data.okved);
-      okvedInfo = `\n- ${sectorName}`;
+      try {
+        console.log(`Fetching OKVED sector name for code: ${data.okved}`);
+        sectorName = await Promise.race([
+          getOkvedSectorName(data.okved),
+          new Promise<string>((_, reject) => 
+            setTimeout(() => reject(new Error('OKVED lookup timeout')), 10000)
+          )
+        ]);
+        okvedInfo = `\n- ${sectorName}`;
+        console.log(`OKVED sector resolved: ${sectorName}`);
+      } catch (error) {
+        console.warn(`OKVED lookup failed or timed out, using code as-is:`, error);
+        sectorName = `Отрасль по ОКВЭД ${data.okved}`;
+        okvedInfo = `\n- ${sectorName}`;
+      }
     }
     
     const companyInfo = data.companyName ? `\nНаименование компании: ${data.companyName}` : '';
@@ -138,21 +153,31 @@ export async function generateFinancialAnalysis(
 - Рекомендации должны быть практичными и направленными на улучшение кредитоспособности
 - Весь анализ на русском языке`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: "Вы опытный финансовый аналитик. Предоставляйте точный, профессиональный анализ в формате JSON."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 4096,
-    });
+    console.log('Sending request to OpenAI API...');
+    
+    // Add timeout to OpenAI API call (30 seconds)
+    const response = await Promise.race([
+      openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: "Вы опытный финансовый аналитик. Предоставляйте точный, профессиональный анализ в формате JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 4096,
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('OpenAI API timeout after 30 seconds')), 30000)
+      )
+    ]) as Awaited<ReturnType<typeof openai.chat.completions.create>>;
+
+    console.log('Received response from OpenAI API');
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
@@ -160,6 +185,7 @@ export async function generateFinancialAnalysis(
       return generateFallbackAnalysis(data, ratios);
     }
 
+    console.log('Parsing OpenAI response...');
     const result = JSON.parse(content);
 
     // Validate and sanitize the response with strict schema checking
