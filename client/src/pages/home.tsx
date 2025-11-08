@@ -26,41 +26,56 @@ export default function Home() {
       setProgress(10);
       setProcessingStage("Отправка файла на сервер...");
 
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        body: formData,
-      });
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
 
-      setProgress(30);
-      setProcessingStage("Парсинг данных из документа...");
+      try {
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Ошибка обработки файла");
+        clearTimeout(timeoutId);
+
+        setProgress(30);
+        setProcessingStage("Парсинг данных из документа...");
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Ошибка обработки файла");
+        }
+
+        setProgress(50);
+        setProcessingStage("Расчёт финансовых коэффициентов...");
+
+        const data = await response.json();
+
+        if (!data.success || !data.result) {
+          throw new Error("Неверный формат ответа от сервера");
+        }
+
+        setProgress(70);
+        setProcessingStage("Генерация AI анализа...");
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        setProgress(90);
+        setProcessingStage("Подготовка результатов...");
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        setProgress(100);
+
+        return data.result as FinancialAnalysisResult;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Превышено время ожидания ответа от сервера. Попробуйте снова.');
+        }
+        throw error;
       }
-
-      setProgress(50);
-      setProcessingStage("Расчёт финансовых коэффициентов...");
-
-      const data = await response.json();
-
-      if (!data.success || !data.result) {
-        throw new Error("Неверный формат ответа от сервера");
-      }
-
-      setProgress(70);
-      setProcessingStage("Генерация AI анализа...");
-
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      setProgress(90);
-      setProcessingStage("Подготовка результатов...");
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      setProgress(100);
-
-      return data.result as FinancialAnalysisResult;
     },
     onSuccess: (result) => {
       setAnalysisResult(result);
