@@ -244,7 +244,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const periods: ReportingPeriod[] = [];
 
       // Check if we have multi-year data from the parser
-      const hasMultiYearData = financialData.yearlyData && financialData.yearlyData.length >= 2;
+      // yearlyData contains ONLY historical years (current year excluded in parser)
+      // So yearlyData.length >= 1 means we have current + 1 historical = 2 years minimum
+      const hasMultiYearData = financialData.yearlyData && financialData.yearlyData.length >= 1;
       
       if (hasMultiYearData) {
         console.log(`Found multi-year data: ${financialData.yearlyData!.length} additional years`);

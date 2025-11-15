@@ -26,9 +26,11 @@ Typography uses 'Inter' for text and UI, and 'JetBrains Mono' for financial figu
 
 ### Technical Implementations
 The platform supports drag-and-drop file uploads for .xlsx, .xls, .docx, and .pdf files (up to 10 MB).
-A universal document parser employs a dual parsing strategy:
--   Multi-line format: "Field → Code (4 digits) → Value" on separate lines.
--   Single-line format: "Field Code Value1 Value2" on one line.
+A universal document parser employs a dual parsing strategy with **multi-year data extraction**:
+-   **Multi-line format**: "Field → Code (4 digits) → Value1 → Value2 → Value3" on separate lines (extracts up to 3 years of data).
+-   **Single-line format**: "Field Code Value1 Value2 Value3" on one line (extracts up to 3 years of data).
+-   **Multi-Year Support**: Parser automatically detects and extracts data for current year and up to 2 historical years from DOCX files.
+-   **Data Storage**: yearlyData field stores historical year data as Maps (yearlyData[0] = year -1, yearlyData[1] = year -2).
 The parser includes robust number handling for zeros, negative values (minus and parentheses), and various thousands/decimal separators.
 Core financial calculations include liquidity ratios (current, quick, absolute) and financial stability indicators (autonomy, debt, financial leverage).
 **Balance Sheet Validation**: The system enforces the fundamental accounting equation (ASSETS = LIABILITIES + EQUITY) by:
@@ -67,6 +69,8 @@ AI analysis is integrated with OpenAI GPT-5, featuring a graceful fallback to ru
     -   **Fallback Analysis**: Rule-based creditworthiness and industry assessment when OpenAI API unavailable
 -   **Data Visualization**: 
     -   Interactive charts (bar, radar) using Recharts.
+    -   **Multi-Year Grouped Bar Charts**: When 2+ years of data available, charts display grouped bars showing trends across periods (2023, 2024, 2025).
+    -   **Dynamic Bar Rendering**: Charts dynamically render bars based on available periods (2 or 3 years) with proper legends and colors.
     -   **Profitability Chart**: Dedicated bar chart for profitability ratios (conditionally displayed when income data exists).
 -   **Report Export**: Export of detailed financial reports to TXT format, including balance sheet, ratios, profitability metrics, creditworthiness assessment, and industry analysis.
 -   **User Interface**: 
