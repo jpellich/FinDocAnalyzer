@@ -12,6 +12,18 @@ interface RatioCardProps {
 }
 
 export function RatioCard({ title, ratio, trend, isPercentage = false }: RatioCardProps) {
+  const isWorkingCapital = title.toLowerCase().includes("оборотный капитал");
+  
+  const formatValue = (value: number) => {
+    if (isPercentage) {
+      return `${(value * 100).toFixed(2)}%`;
+    } else if (isWorkingCapital) {
+      return `${value.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`;
+    } else {
+      return value.toFixed(2);
+    }
+  };
+  
   const getStatusColor = (status: RatioWithStatus["status"]) => {
     switch (status) {
       case "excellent":
@@ -73,7 +85,7 @@ export function RatioCard({ title, ratio, trend, isPercentage = false }: RatioCa
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="text-3xl font-bold font-mono" data-testid="text-ratio-value">
-          {isPercentage ? `${(ratio.value * 100).toFixed(2)}%` : ratio.value.toFixed(2)}
+          {formatValue(ratio.value)}
         </div>
         
         <div className="flex items-center gap-2">
