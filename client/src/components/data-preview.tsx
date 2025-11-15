@@ -210,7 +210,11 @@ export function DataPreview({ data }: DataPreviewProps) {
                         } ${item.expandable && hasDetails ? "cursor-pointer" : ""}`}
                         style={{ paddingLeft: `${1 + item.indent * 1.5}rem` }}
                         data-testid={`row-data-${sectionIndex}-${itemIndex}`}
-                        onClick={() => item.expandable && hasDetails && toggleSection(item.key)}
+                        onClick={() => {
+                          if (item.expandable && hasDetails && item.key) {
+                            toggleSection(item.key);
+                          }
+                        }}
                       >
                         <div className="flex items-center gap-2">
                           {item.expandable && hasDetails && (
