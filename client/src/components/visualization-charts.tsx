@@ -131,53 +131,55 @@ export function VisualizationCharts({ result }: VisualizationChartsProps) {
   const profitabilityData = [];
   
   if (hasHistoricalData) {
-    // Multi-year profitability
-    if (periods[0]?.ratios.roa) {
+    // Multi-year profitability - reversed order so latest year is first
+    const sortedPeriods = [...periods].reverse(); // Reverse to show oldest to newest
+    
+    if (sortedPeriods[0]?.ratios.roa) {
       profitabilityData.push({
         name: "ROA",
-        ...(periods[0] && periods[0].ratios.roa && { [periods[0].year]: periods[0].ratios.roa.value * 100 }),
-        ...(periods[1] && periods[1].ratios.roa && { [periods[1].year]: periods[1].ratios.roa.value * 100 }),
-        ...(periods[2] && periods[2].ratios.roa && { [periods[2].year]: periods[2].ratios.roa.value * 100 }),
+        ...(sortedPeriods[2] && sortedPeriods[2].ratios.roa && { [sortedPeriods[2].year]: sortedPeriods[2].ratios.roa.value * 100 }),
+        ...(sortedPeriods[1] && sortedPeriods[1].ratios.roa && { [sortedPeriods[1].year]: sortedPeriods[1].ratios.roa.value * 100 }),
+        ...(sortedPeriods[0] && sortedPeriods[0].ratios.roa && { [sortedPeriods[0].year]: sortedPeriods[0].ratios.roa.value * 100 }),
       });
     }
-    if (periods[0]?.ratios.roe) {
+    if (sortedPeriods[0]?.ratios.roe) {
       profitabilityData.push({
         name: "ROE",
-        ...(periods[0] && periods[0].ratios.roe && { [periods[0].year]: periods[0].ratios.roe.value * 100 }),
-        ...(periods[1] && periods[1].ratios.roe && { [periods[1].year]: periods[1].ratios.roe.value * 100 }),
-        ...(periods[2] && periods[2].ratios.roe && { [periods[2].year]: periods[2].ratios.roe.value * 100 }),
+        ...(sortedPeriods[2] && sortedPeriods[2].ratios.roe && { [sortedPeriods[2].year]: sortedPeriods[2].ratios.roe.value * 100 }),
+        ...(sortedPeriods[1] && sortedPeriods[1].ratios.roe && { [sortedPeriods[1].year]: sortedPeriods[1].ratios.roe.value * 100 }),
+        ...(sortedPeriods[0] && sortedPeriods[0].ratios.roe && { [sortedPeriods[0].year]: sortedPeriods[0].ratios.roe.value * 100 }),
       });
     }
-    if (periods[0]?.ratios.ros) {
+    if (sortedPeriods[0]?.ratios.ros) {
       profitabilityData.push({
         name: "ROS",
-        ...(periods[0] && periods[0].ratios.ros && { [periods[0].year]: periods[0].ratios.ros.value * 100 }),
-        ...(periods[1] && periods[1].ratios.ros && { [periods[1].year]: periods[1].ratios.ros.value * 100 }),
-        ...(periods[2] && periods[2].ratios.ros && { [periods[2].year]: periods[2].ratios.ros.value * 100 }),
+        ...(sortedPeriods[2] && sortedPeriods[2].ratios.ros && { [sortedPeriods[2].year]: sortedPeriods[2].ratios.ros.value * 100 }),
+        ...(sortedPeriods[1] && sortedPeriods[1].ratios.ros && { [sortedPeriods[1].year]: sortedPeriods[1].ratios.ros.value * 100 }),
+        ...(sortedPeriods[0] && sortedPeriods[0].ratios.ros && { [sortedPeriods[0].year]: sortedPeriods[0].ratios.ros.value * 100 }),
       });
     }
-    if (periods[0]?.ratios.grossProfitMargin) {
+    if (sortedPeriods[0]?.ratios.grossProfitMargin) {
       profitabilityData.push({
         name: "Валовая рент.",
-        ...(periods[0] && periods[0].ratios.grossProfitMargin && { [periods[0].year]: periods[0].ratios.grossProfitMargin.value * 100 }),
-        ...(periods[1] && periods[1].ratios.grossProfitMargin && { [periods[1].year]: periods[1].ratios.grossProfitMargin.value * 100 }),
-        ...(periods[2] && periods[2].ratios.grossProfitMargin && { [periods[2].year]: periods[2].ratios.grossProfitMargin.value * 100 }),
+        ...(sortedPeriods[2] && sortedPeriods[2].ratios.grossProfitMargin && { [sortedPeriods[2].year]: sortedPeriods[2].ratios.grossProfitMargin.value * 100 }),
+        ...(sortedPeriods[1] && sortedPeriods[1].ratios.grossProfitMargin && { [sortedPeriods[1].year]: sortedPeriods[1].ratios.grossProfitMargin.value * 100 }),
+        ...(sortedPeriods[0] && sortedPeriods[0].ratios.grossProfitMargin && { [sortedPeriods[0].year]: sortedPeriods[0].ratios.grossProfitMargin.value * 100 }),
       });
     }
-    if (periods[0]?.ratios.operatingProfitMargin) {
+    if (sortedPeriods[0]?.ratios.operatingProfitMargin) {
       profitabilityData.push({
         name: "Опер. рент.",
-        ...(periods[0] && periods[0].ratios.operatingProfitMargin && { [periods[0].year]: periods[0].ratios.operatingProfitMargin.value * 100 }),
-        ...(periods[1] && periods[1].ratios.operatingProfitMargin && { [periods[1].year]: periods[1].ratios.operatingProfitMargin.value * 100 }),
-        ...(periods[2] && periods[2].ratios.operatingProfitMargin && { [periods[2].year]: periods[2].ratios.operatingProfitMargin.value * 100 }),
+        ...(sortedPeriods[2] && sortedPeriods[2].ratios.operatingProfitMargin && { [sortedPeriods[2].year]: sortedPeriods[2].ratios.operatingProfitMargin.value * 100 }),
+        ...(sortedPeriods[1] && sortedPeriods[1].ratios.operatingProfitMargin && { [sortedPeriods[1].year]: sortedPeriods[1].ratios.operatingProfitMargin.value * 100 }),
+        ...(sortedPeriods[0] && sortedPeriods[0].ratios.operatingProfitMargin && { [sortedPeriods[0].year]: sortedPeriods[0].ratios.operatingProfitMargin.value * 100 }),
       });
     }
-    if (periods[0]?.ratios.netProfitMargin) {
+    if (sortedPeriods[0]?.ratios.netProfitMargin) {
       profitabilityData.push({
         name: "Чистая рент.",
-        ...(periods[0] && periods[0].ratios.netProfitMargin && { [periods[0].year]: periods[0].ratios.netProfitMargin.value * 100 }),
-        ...(periods[1] && periods[1].ratios.netProfitMargin && { [periods[1].year]: periods[1].ratios.netProfitMargin.value * 100 }),
-        ...(periods[2] && periods[2].ratios.netProfitMargin && { [periods[2].year]: periods[2].ratios.netProfitMargin.value * 100 }),
+        ...(sortedPeriods[2] && sortedPeriods[2].ratios.netProfitMargin && { [sortedPeriods[2].year]: sortedPeriods[2].ratios.netProfitMargin.value * 100 }),
+        ...(sortedPeriods[1] && sortedPeriods[1].ratios.netProfitMargin && { [sortedPeriods[1].year]: sortedPeriods[1].ratios.netProfitMargin.value * 100 }),
+        ...(sortedPeriods[0] && sortedPeriods[0].ratios.netProfitMargin && { [sortedPeriods[0].year]: sortedPeriods[0].ratios.netProfitMargin.value * 100 }),
       });
     }
   } else {

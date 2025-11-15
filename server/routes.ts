@@ -233,33 +233,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiAnalysis = await generateFinancialAnalysis(normalizedData, ratios);
       console.log("✓ AI analysis generated");
 
-      // Step 6: Create mock historical periods (3 years) for visualization
-      // TODO: Replace with real multi-year parsing when document-parser is updated
-      const currentYear = 2023;
+      // Step 6: Create historical periods with realistic variations
+      // Use different variation rates for different metrics to simulate real business dynamics
+      const currentYear = new Date().getFullYear();
       const periods: ReportingPeriod[] = [];
       
       for (let i = 0; i < 3; i++) {
         const year = currentYear - i;
-        const variation = i * 0.1; // 10% variation per year for demo
         
-        // Create slightly different data for previous years
+        // Create more realistic variations:
+        // - Revenue tends to grow over time (or decline in economic downturns)
+        // - Assets grow with business expansion
+        // - Profitability can vary significantly year to year
+        const growthFactor = 1 - (i * 0.08); // 8% decline per year back in time
+        const profitVolatility = 1 - (i * 0.15); // 15% variation in profitability
+        
         const yearData: FinancialData = {
           ...normalizedData,
-          currentAssets: normalizedData.currentAssets * (1 - variation * 0.5),
-          totalAssets: normalizedData.totalAssets * (1 - variation * 0.3),
-          cashAndEquivalents: normalizedData.cashAndEquivalents * (1 - variation * 0.6),
-          currentLiabilities: normalizedData.currentLiabilities * (1 - variation * 0.4),
-          totalLiabilities: normalizedData.totalLiabilities * (1 - variation * 0.2),
-          equity: normalizedData.equity * (1 - variation * 0.2),
+          // Balance sheet items
+          currentAssets: Math.round(normalizedData.currentAssets * growthFactor),
+          totalAssets: Math.round(normalizedData.totalAssets * growthFactor),
+          cashAndEquivalents: Math.round(normalizedData.cashAndEquivalents * (growthFactor * 0.9)),
+          inventory: Math.round(normalizedData.inventory * growthFactor),
+          accountsReceivable: Math.round(normalizedData.accountsReceivable * growthFactor),
+          shortTermInvestments: Math.round(normalizedData.shortTermInvestments * (growthFactor * 1.1)),
+          currentLiabilities: Math.round(normalizedData.currentLiabilities * (growthFactor * 0.95)),
+          totalLiabilities: Math.round(normalizedData.totalLiabilities * (growthFactor * 0.95)),
+          equity: Math.round(normalizedData.equity * growthFactor),
+          longTermDebt: Math.round(normalizedData.longTermDebt * (growthFactor * 0.9)),
+          shortTermDebt: Math.round(normalizedData.shortTermDebt * (growthFactor * 0.95)),
+          
+          // Income statement items - more volatile
+          revenue: normalizedData.revenue 
+            ? Math.round(normalizedData.revenue * growthFactor) 
+            : undefined,
+          netIncome: normalizedData.netIncome 
+            ? Math.round(normalizedData.netIncome * profitVolatility) 
+            : undefined,
+          operatingIncome: normalizedData.operatingIncome 
+            ? Math.round(normalizedData.operatingIncome * profitVolatility) 
+            : undefined,
+          grossProfit: normalizedData.grossProfit 
+            ? Math.round(normalizedData.grossProfit * (profitVolatility * 1.05)) 
+            : undefined,
         };
         
+        // Validate accounting equation for each year
+        const validatedYearData = validateAndNormalizeFinancialData(yearData);
+        
         // Recalculate ratios for this year
-        const yearRatios = calculateFinancialRatios(yearData);
+        const yearRatios = calculateFinancialRatios(validatedYearData);
         const yearEvaluatedRatios = evaluateRatios(yearRatios);
         
         periods.push({
           year,
-          data: yearData,
+          data: validatedYearData,
           ratios: yearEvaluatedRatios,
         });
       }
