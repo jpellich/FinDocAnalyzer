@@ -239,60 +239,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiAnalysis = await generateFinancialAnalysis(normalizedData, ratios);
       console.log("✓ AI analysis generated");
 
-      // Step 6: Create historical periods with realistic variations
-      // Use different variation rates for different metrics to simulate real business dynamics
+      // Step 6: Create historical periods from parsed multi-year data
       const currentYear = new Date().getFullYear();
       const periods: ReportingPeriod[] = [];
 
-      for (let i = 0; i < 3; i++) {
-        const year = currentYear - i;
+      // Check if we have multi-year data from the parser
+      const hasMultiYearData = financialData.yearlyData && financialData.yearlyData.length >= 2;
+      
+      if (hasMultiYearData) {
+        console.log(`Found multi-year data: ${financialData.yearlyData!.length} additional years`);
+        
+        // Create periods for each year (current + 2 previous years)
+        for (let i = 0; i < 3; i++) {
+          const year = currentYear - i;
+          let yearData: FinancialData;
+          
+          if (i === 0) {
+            // Current year - use normalized data
+            yearData = normalizedData;
+          } else {
+            // Previous years - build from yearlyData maps
+            const yearMap = financialData.yearlyData![i - 1];
+            
+            // Helper to get value from yearMap with same normalization as parser
+            const getYearValue = (keys: string[]): number => {
+              for (const key of keys) {
+                const normalizedKey = key.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+                if (yearMap.has(normalizedKey)) {
+                  return yearMap.get(normalizedKey)!;
+                }
+              }
+              // Return current year value as fallback
+              return 0;
+            };
+            
+            // Build FinancialData for this year using yearMap
+            yearData = {
+              okved: normalizedData.okved,
+              companyName: normalizedData.companyName,
+              currentAssets: getYearValue(["итого по разделу ii", "оборотные активы"]) || normalizedData.currentAssets,
+              cashAndEquivalents: getYearValue(["денежные средства и денежные эквиваленты", "денежные средства"]) || normalizedData.cashAndEquivalents,
+              shortTermInvestments: getYearValue(["финансовые вложения"]) || normalizedData.shortTermInvestments,
+              accountsReceivable: getYearValue(["дебиторская задолженность"]) || normalizedData.accountsReceivable,
+              inventory: getYearValue(["запасы"]) || normalizedData.inventory,
+              totalAssets: getYearValue(["баланс", "активы"]) || normalizedData.totalAssets,
+              currentLiabilities: getYearValue(["итого по разделу v", "краткосрочные обязательства"]) || normalizedData.currentLiabilities,
+              shortTermDebt: getYearValue(["заемные средства"]) || normalizedData.shortTermDebt,
+              totalLiabilities: getYearValue(["обязательства"]) || normalizedData.totalLiabilities,
+              equity: getYearValue(["итого по разделу iii", "капитал и резервы"]) || normalizedData.equity,
+              longTermDebt: getYearValue(["итого по разделу iv", "долгосрочные обязательства"]) || normalizedData.longTermDebt,
+              revenue: getYearValue(["выручка"]) || normalizedData.revenue,
+              netIncome: getYearValue(["чистая прибыль"]) || normalizedData.netIncome,
+              operatingIncome: getYearValue(["прибыль от продаж"]) || normalizedData.operatingIncome,
+              grossProfit: getYearValue(["валовая прибыль"]) || normalizedData.grossProfit,
+            };
+          }
 
-        // Create more realistic variations:
-        // - Revenue tends to grow over time (or decline in economic downturns)
-        // - Assets grow with business expansion
-        // - Profitability can vary significantly year to year
-        const growthFactor = 1 - (i * 0.08); // 8% decline per year back in time
-        const profitVolatility = 1 - (i * 0.15); // 15% variation in profitability
+          // Validate and calculate ratios for each year
+          const validatedYearData = validateAndNormalizeFinancialData(yearData);
+          const yearRatios = calculateFinancialRatios(validatedYearData);
+          const yearEvaluatedRatios = evaluateRatios(yearRatios);
 
-        const yearData: FinancialData = {
-          ...normalizedData,
-          // Balance sheet items
-          currentAssets: Math.round(normalizedData.currentAssets * growthFactor),
-          totalAssets: Math.round(normalizedData.totalAssets * growthFactor),
-          cashAndEquivalents: Math.round(normalizedData.cashAndEquivalents * (growthFactor * 0.9)),
-          inventory: Math.round(normalizedData.inventory * growthFactor),
-          accountsReceivable: Math.round(normalizedData.accountsReceivable * growthFactor),
-          shortTermInvestments: Math.round(normalizedData.shortTermInvestments * (growthFactor * 1.1)),
-          currentLiabilities: Math.round(normalizedData.currentLiabilities * (growthFactor * 0.95)),
-          totalLiabilities: Math.round(normalizedData.totalLiabilities * (growthFactor * 0.95)),
-          equity: Math.round(normalizedData.equity * growthFactor),
-          longTermDebt: Math.round(normalizedData.longTermDebt * (growthFactor * 0.9)),
-          shortTermDebt: Math.round(normalizedData.shortTermDebt * (growthFactor * 0.95)),
-
-          // Income statement items - more volatile
-          revenue: normalizedData.revenue 
-            ? Math.round(normalizedData.revenue * growthFactor) 
-            : undefined,
-          netIncome: normalizedData.netIncome 
-            ? Math.round(normalizedData.netIncome * profitVolatility) 
-            : undefined,
-          operatingIncome: normalizedData.operatingIncome 
-            ? Math.round(normalizedData.operatingIncome * profitVolatility) 
-            : undefined,
-          grossProfit: normalizedData.grossProfit 
-            ? Math.round(normalizedData.grossProfit * (profitVolatility * 1.05)) 
-            : undefined,
-        };
-
-        // Validate accounting equation for each year
-        const validatedYearData = validateAndNormalizeFinancialData(yearData);
-
-        // Recalculate ratios for this year
+          periods.push({
+            year,
+            data: validatedYearData,
+            ratios: yearEvaluatedRatios,
+          });
+        }
+      } else {
+        console.log('No multi-year data found, creating single-year period');
+        // If no multi-year data, create just one period for current year
+        const validatedYearData = validateAndNormalizeFinancialData(normalizedData);
         const yearRatios = calculateFinancialRatios(validatedYearData);
         const yearEvaluatedRatios = evaluateRatios(yearRatios);
 
         periods.push({
-          year,
+          year: currentYear,
           data: validatedYearData,
           ratios: yearEvaluatedRatios,
         });

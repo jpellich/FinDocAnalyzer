@@ -6,6 +6,10 @@ export interface FinancialData {
   okved?: string; // ОКВЭД 2 code for industry classification
   companyName?: string; // Company name if available
   
+  // Multi-year support: raw data for additional years (if available from document)
+  // Index 0 = year -1, Index 1 = year -2
+  yearlyData?: Map<string, number>[];
+  
   // Balance Sheet items
   currentAssets: number;
   cashAndEquivalents: number;

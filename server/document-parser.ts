@@ -203,7 +203,7 @@ function parseNumericValue(str: string): number | null {
  * Parse financial data from text content
  * Supports two document layouts:
  * 1. Multi-line: Field name → Code (4 digits) → Value (on separate lines)
- * 2. Single-line: Field name Code Value1 Value2 ... (all on one line)
+ * 2. Single-line: Field name Code Value1 Value2 Value3 (all on one line - values for different years)
  */
 function parseFinancialDataFromText(text: string): FinancialData {
   const lines = text.split('\n').map(line => line.trim());
@@ -251,8 +251,15 @@ function parseFinancialDataFromText(text: string): FinancialData {
     if (okved && companyName) break;
   }
 
-  // Create a map to store found values
+  // Create maps to store found values for each year
+  // dataMap stores the most recent year (first value)
+  // yearMaps stores values for year1, year2, year3
   const dataMap = new Map<string, number>();
+  const yearMaps = [
+    new Map<string, number>(), // Year 1 (most recent)
+    new Map<string, number>(), // Year 2 
+    new Map<string, number>(), // Year 3
+  ];
   const foundKeys: string[] = [];
 
   // Pattern to detect 4-digit codes (used to identify multi-line structure)
@@ -302,16 +309,29 @@ function parseFinancialDataFromText(text: string): FinancialData {
         const match = line.match(pattern);
         if (match) {
           const itemName = match[1].trim();
-          // Get the first numeric value (most recent period)
-          const valueStr = match[3] || match[2];
-          const value = parseNumericValue(valueStr);
+          
+          // Extract all available values (up to 3 years)
+          const valueStrs = [
+            match[3] || match[2], // Year 1 (most recent)
+            match[4],             // Year 2
+            match[5],             // Year 3
+          ];
 
-          // Accept any valid number, including zero and negative
-          if (value !== null && !isNaN(value)) {
+          const values = valueStrs.map(str => str ? parseNumericValue(str) : null);
+          
+          // Store first value in main dataMap
+          if (values[0] !== null && !isNaN(values[0])) {
             const normalizedKey = normalizeKey(itemName);
             if (normalizedKey) {
-              dataMap.set(normalizedKey, value);
+              dataMap.set(normalizedKey, values[0]);
               foundKeys.push(itemName);
+              
+              // Store values for each year
+              values.forEach((val, idx) => {
+                if (val !== null && !isNaN(val)) {
+                  yearMaps[idx].set(normalizedKey, val);
+                }
+              });
             }
           }
           break;
@@ -383,12 +403,16 @@ function parseFinancialDataFromText(text: string): FinancialData {
   }
 
   console.log(`Найдены следующие поля в документе (${foundKeys.length} полей):`, foundKeys.slice(0, 30));
+  console.log(`Yearly data maps: ${yearMaps.map((m, i) => `Year ${i + 1}: ${m.size} fields`).join(', ')}`);
 
   // Map the parsed data to our FinancialData structure
   const financialData: FinancialData = {
     // Company information
     okved,
     companyName,
+
+    // Store additional years data if available (year1, year2)
+    yearlyData: yearMaps.slice(1).filter(m => m.size > 0),
 
     currentAssets: findValue(dataMap, foundKeys, [
       "итого по разделу ii",
@@ -636,30 +660,8 @@ function parseFinancialDataFromText(text: string): FinancialData {
     }
   }
 
-  // Return the complete financial data with all parsed values
-  return {
-    currentAssets: financialData.currentAssets,
-    cashAndEquivalents: financialData.cashAndEquivalents,
-    shortTermInvestments: financialData.shortTermInvestments,
-    accountsReceivable: financialData.accountsReceivable,
-    inventory: financialData.inventory,
-    totalAssets: financialData.totalAssets,
-    currentLiabilities: financialData.currentLiabilities,
-    shortTermDebt: financialData.shortTermDebt,
-    totalLiabilities: financialData.totalLiabilities,
-    equity: financialData.equity,
-    longTermDebt: financialData.longTermDebt,
-    revenue: financialData.revenue,
-    netIncome: financialData.netIncome,
-    operatingIncome: financialData.operatingIncome,
-    grossProfit: financialData.grossProfit,
-    companyName: financialData.companyName,
-    okved: financialData.okved, // This should now be 'okved' as per schema
-    // okvedCode: financialData.okvedCode, // Removed as schema uses 'okved'
-    // okvedDescription: financialData.okvedDescription, // Removed as schema uses 'okved'
-    // Include multi-year data if parsed (structure needs to be defined in schema)
-    // multiYearData: parsedMultiYearData,
-  };
+  // Return the complete financial data with all parsed values including yearly data
+  return financialData;
 }
 
 /**
