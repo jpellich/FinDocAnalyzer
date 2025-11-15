@@ -21,18 +21,18 @@ export function parseExcelFile(buffer: Buffer): FinancialData {
   try {
     // Read the Excel file from buffer
     const workbook = XLSX.read(buffer, { type: "buffer" });
-    
+
     // Get the first sheet
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
       throw new Error("Excel файл не содержит листов");
     }
-    
+
     const worksheet = workbook.Sheets[sheetName];
-    
+
     // Convert sheet to JSON
     const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    
+
     if (!jsonData || jsonData.length < 2) {
       throw new Error("Excel файл содержит недостаточно данных");
     }
@@ -41,14 +41,14 @@ export function parseExcelFile(buffer: Buffer): FinancialData {
     // This assumes a simple two-column format: [Item Name, Value]
     const dataMap = new Map<string, number>();
     const foundKeys: string[] = []; // Track what keys we found for better error messages
-    
+
     for (let i = 0; i < jsonData.length; i++) {
       const row = jsonData[i];
       if (row && row.length >= 2) {
         const rawKey = String(row[0]).trim();
         const key = normalizeKey(rawKey);
         const value = parseFloat(row[1]);
-        
+
         if (key && !isNaN(value)) {
           dataMap.set(key, value);
           foundKeys.push(rawKey);
@@ -164,11 +164,21 @@ export function parseExcelFile(buffer: Buffer): FinancialData {
         "прибыль от продаж",
         "операционный доход"
       ], true),
+      grossProfit: findValue(dataMap, foundKeys, [
+        "валовая прибыль убыток",
+        "валовая прибыль",
+        "gross profit"
+      ], true),
+      profitBeforeTax: findValue(dataMap, foundKeys, [
+        "прибыль убыток до налогообложения",
+        "прибыль до налогообложения",
+        "profit before tax"
+      ], true),
     };
 
     // Validate the parsed data using Zod schema
     const validatedData = financialDataSchema.parse(financialData);
-    
+
     return validatedData;
   } catch (error) {
     if (error instanceof Error) {
@@ -195,34 +205,34 @@ function findValue(
       return dataMap.get(normalizedKey)!;
     }
   }
-  
+
   // Then try partial matches (key contains the search term)
   for (const key of possibleKeys) {
     const normalizedSearchKey = normalizeKey(key);
     const words = normalizedSearchKey.split(' ');
-    
+
     // Look for keys that contain all the words from our search term
     for (const [mapKey, value] of dataMap.entries()) {
       const allWordsPresent = words.every(word => 
         word.length > 2 && mapKey.includes(word)
       );
-      
+
       if (allWordsPresent) {
         console.log(`Найдено частичное совпадение: "${mapKey}" для поиска "${normalizedSearchKey}"`);
         return value;
       }
     }
   }
-  
+
   if (optional) {
     return 0;
   }
-  
+
   // Provide helpful error message with what was found
   const errorMsg = `Не найдено обязательное поле: "${possibleKeys[0]}". 
 Попробуйте использовать одно из этих названий: ${possibleKeys.slice(0, 3).join(', ')}.
 Найденные поля в файле: ${foundKeys.slice(0, 10).join(', ')}${foundKeys.length > 10 ? '...' : ''}`;
-  
+
   throw new Error(errorMsg);
 }
 
@@ -232,18 +242,42 @@ function findValue(
 export function generateSampleTemplate(): Buffer {
   const sampleData = [
     ["Показатель", "Значение"],
-    ["Оборотные активы", 150000],
+    // Section I: Non-current assets (implied, not explicitly listed in original sample but good to have for context)
+    // "I. Внеоборотные активы" - This would be a header, not a data row.
+    // Data points would follow, but are not in the original sample.
+    // Assuming the user wants to see how these sections would be represented.
+
+    // Section III: Capital and Reserves (implied)
+    // "III. Капитал и резервы" - This would be a header.
+    // Data points would follow.
+
+    // Example data points that might fall under these sections, if they were expanded:
+    // ["Основные средства", 150000], // Example for Non-current assets
+    // ["Нематериальные активы", 20000], // Example for Non-current assets
+
+    // Data points related to Equity (which is part of Capital and Reserves)
+    ["Собственный капитал", 180000], // This is already present and maps to equity
+    // ["Уставный капитал", 100000], // Example for Capital and Reserves
+    // ["Добавочный капитал", 50000], // Example for Capital and Reserves
+    // ["Резервный капитал", 30000], // Example for Capital and Reserves
+
+    ["Оборотные активы", 150000], // Section II
     ["Денежные средства", 45000],
     ["Краткосрочные инвестиции", 20000],
     ["Дебиторская задолженность", 50000],
     ["Запасы", 35000],
-    ["Всего активов", 300000],
-    ["Краткосрочные обязательства", 60000],
+    ["Всего активов", 300000], // Total Assets
+    ["Краткосрочные обязательства", 60000], // Section V
     ["Краткосрочный долг", 15000],
-    ["Всего обязательств", 120000],
-    ["Собственный капитал", 180000],
-    ["Долгосрочный долг", 60000],
+    ["Всего обязательств", 120000], // Total Liabilities
+    // ["Долгосрочные обязательства", 60000], // Section IV - implied by longTermDebt
+    ["Долгосрочный долг", 60000], // This maps to longTermDebt, part of Section IV
+
+    // Financial Performance Indicators
     ["Выручка", 500000],
+    ["Валовая прибыль", 150000], // Added based on user request for "Валовая прибыль (убыток)"
+    ["Прибыль от продаж", 80000], // Added based on user request for "Прибыль (убыток) от продаж"
+    ["Прибыль до налогообложения", 65000], // Added based on user request for "Прибыль (убыток) до налогообложения"
     ["Чистая прибыль", 45000],
   ];
 

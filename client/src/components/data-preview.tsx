@@ -164,12 +164,14 @@ export function DataPreview({ data }: DataPreviewProps) {
 
   // Отчёт о прибылях и убытках (если есть данные)
   const incomeStatement = [];
-  if (data.revenue || data.netIncome || data.operatingIncome) {
+  if (data.revenue || data.netIncome || data.operatingIncome || data.grossProfit) {
     incomeStatement.push({
-      section: "ОТЧЁТ О ПРИБЫЛЯХ И УБЫТКАХ",
+      section: "ОТЧЁТ О ФИНАНСОВЫХ РЕЗУЛЬТАТАХ",
       items: [
         data.revenue ? { label: "Выручка", value: data.revenue, indent: 0, bold: true } : null,
-        data.operatingIncome ? { label: "Прибыль от продаж", value: data.operatingIncome, indent: 0 } : null,
+        data.grossProfit ? { label: "Валовая прибыль (убыток)", value: data.grossProfit, indent: 0 } : null,
+        data.operatingIncome ? { label: "Прибыль (убыток) от продаж", value: data.operatingIncome, indent: 0 } : null,
+        data.profitBeforeTax ? { label: "Прибыль (убыток) до налогообложения", value: data.profitBeforeTax, indent: 0 } : null,
         data.netIncome ? { label: "Чистая прибыль (убыток)", value: data.netIncome, indent: 0, bold: true, highlight: true } : null,
       ].filter(Boolean)
     });

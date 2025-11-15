@@ -497,6 +497,11 @@ function parseFinancialDataFromText(text: string): FinancialData {
       "валовая прибыль",
       "gross profit"
     ], true),
+    profitBeforeTax: findValue(dataMap, foundKeys, [
+      "прибыль убыток до налогообложения",
+      "прибыль до налогообложения",
+      "profit before tax"
+    ], true),
     // Section I - Non-current assets details
     intangibleAssets: findValue(dataMap, foundKeys, [
       "нематериальные активы",

@@ -21,7 +21,7 @@ const upload = multer({
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/pdf",
     ];
-    
+
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -45,7 +45,7 @@ function generateTextReport(result: FinancialAnalysisResult): string {
   };
 
   const date = new Date(result.timestamp).toLocaleString("ru-RU");
-  
+
   let report = `═══════════════════════════════════════════════════════════════════════
 ФИНАНСОВЫЙ ОТЧЁТ
 ═══════════════════════════════════════════════════════════════════════
@@ -58,41 +58,47 @@ function generateTextReport(result: FinancialAnalysisResult): string {
 
 АКТИВ:
   I. Внеоборотные активы         ${formatCurrency(result.data.totalAssets - result.data.currentAssets)}
-  
+
   II. Оборотные активы           ${formatCurrency(result.data.currentAssets)}
     - Запасы                     ${formatCurrency(result.data.inventory)}
     - Дебиторская задолженность  ${formatCurrency(result.data.accountsReceivable)}
     - Финансовые вложения        ${formatCurrency(result.data.shortTermInvestments)}
     - Денежные средства          ${formatCurrency(result.data.cashAndEquivalents)}
-  
+
   БАЛАНС (АКТИВ)                 ${formatCurrency(result.data.totalAssets)}
 
 ПАССИВ:
   III. Капитал и резервы         ${formatCurrency(result.data.equity)}
-  
+
   IV. Долгосрочные обязательства ${formatCurrency(result.data.longTermDebt)}
-  
+
   V. Краткосрочные обязательства ${formatCurrency(result.data.currentLiabilities)}
     - Заемные средства           ${formatCurrency(result.data.shortTermDebt)}
-  
+
   БАЛАНС (ПАССИВ)                ${formatCurrency(result.data.equity + result.data.longTermDebt + result.data.currentLiabilities)}
 
 `;
 
-  if (result.data.revenue || result.data.netIncome) {
+  if (result.data.revenue || result.data.netIncome || result.data.operatingIncome || result.data.grossProfit) {
     report += `───────────────────────────────────────────────────────────────────────
-ОТЧЁТ О ПРИБЫЛЯХ И УБЫТКАХ
+ОТЧЁТ О ФИНАНСОВЫХ РЕЗУЛЬТАТАХ
 ───────────────────────────────────────────────────────────────────────
 
 `;
-    if (result.data.revenue) {
-      report += `  Выручка                        ${formatCurrency(result.data.revenue)}\n`;
+    if (result.data.revenue !== undefined) {
+      report += `Выручка                               ${formatCurrency(result.data.revenue)}\n`;
     }
-    if (result.data.operatingIncome) {
-      report += `  Прибыль от продаж              ${formatCurrency(result.data.operatingIncome)}\n`;
+    if (result.data.grossProfit !== undefined) {
+      report += `Валовая прибыль (убыток)              ${formatCurrency(result.data.grossProfit)}\n`;
     }
-    if (result.data.netIncome) {
-      report += `  Чистая прибыль (убыток)        ${formatCurrency(result.data.netIncome)}\n`;
+    if (result.data.operatingIncome !== undefined) {
+      report += `Прибыль (убыток) от продаж            ${formatCurrency(result.data.operatingIncome)}\n`;
+    }
+    if (result.data.profitBeforeTax !== undefined) {
+      report += `Прибыль (убыток) до налогообложения   ${formatCurrency(result.data.profitBeforeTax)}\n`;
+    }
+    if (result.data.netIncome !== undefined) {
+      report += `Чистая прибыль (убыток)               ${formatCurrency(result.data.netIncome)}\n`;
     }
     report += '\n';
   }
@@ -120,7 +126,7 @@ function generateTextReport(result: FinancialAnalysisResult): string {
   if (result.ratios.roa || result.ratios.roe || result.ratios.grossProfitMargin || result.ratios.operatingProfitMargin || result.ratios.netProfitMargin) {
     report += `
 ПОКАЗАТЕЛИ РЕНТАБЕЛЬНОСТИ:`;
-    
+
     if (result.ratios.roa) {
       report += `\n  ROA (Рентабельность активов)       ${(result.ratios.roa.value * 100).toFixed(2)}%    [${result.ratios.roa.status.toUpperCase()}]`;
     }
@@ -200,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Step 1: Parse file based on type
       let financialData;
-      
+
       if (
         req.file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         req.file.mimetype === "application/vnd.ms-excel"
@@ -237,17 +243,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use different variation rates for different metrics to simulate real business dynamics
       const currentYear = new Date().getFullYear();
       const periods: ReportingPeriod[] = [];
-      
+
       for (let i = 0; i < 3; i++) {
         const year = currentYear - i;
-        
+
         // Create more realistic variations:
         // - Revenue tends to grow over time (or decline in economic downturns)
         // - Assets grow with business expansion
         // - Profitability can vary significantly year to year
         const growthFactor = 1 - (i * 0.08); // 8% decline per year back in time
         const profitVolatility = 1 - (i * 0.15); // 15% variation in profitability
-        
+
         const yearData: FinancialData = {
           ...normalizedData,
           // Balance sheet items
@@ -262,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           equity: Math.round(normalizedData.equity * growthFactor),
           longTermDebt: Math.round(normalizedData.longTermDebt * (growthFactor * 0.9)),
           shortTermDebt: Math.round(normalizedData.shortTermDebt * (growthFactor * 0.95)),
-          
+
           // Income statement items - more volatile
           revenue: normalizedData.revenue 
             ? Math.round(normalizedData.revenue * growthFactor) 
@@ -277,21 +283,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? Math.round(normalizedData.grossProfit * (profitVolatility * 1.05)) 
             : undefined,
         };
-        
+
         // Validate accounting equation for each year
         const validatedYearData = validateAndNormalizeFinancialData(yearData);
-        
+
         // Recalculate ratios for this year
         const yearRatios = calculateFinancialRatios(validatedYearData);
         const yearEvaluatedRatios = evaluateRatios(yearRatios);
-        
+
         periods.push({
           year,
           data: validatedYearData,
           ratios: yearEvaluatedRatios,
         });
       }
-      
+
       // Step 7: Create complete analysis result
       const analysisResult: FinancialAnalysisResult = {
         data: normalizedData,
@@ -311,13 +317,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: saved.id,
         result: analysisResult,
       };
-      
+
       console.log(`Sending response to client, result size: ${JSON.stringify(response).length} bytes`);
       res.json(response);
       console.log(`✓ Response sent to client`);
     } catch (error) {
       console.error("Error processing file:", error);
-      
+
       if (error instanceof Error) {
         res.status(400).json({ 
           error: error.message 
@@ -358,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analyses", async (req, res) => {
     try {
       const analyses = await storage.getAllAnalyses();
-      
+
       res.json({
         success: true,
         count: analyses.length,
@@ -376,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/download-report", async (req, res) => {
     try {
       const analysisResult: FinancialAnalysisResult = req.body;
-      
+
       if (!analysisResult || !analysisResult.data || !analysisResult.ratios) {
         return res.status(400).json({ 
           error: "Недостаточно данных для генерации отчёта" 
@@ -385,13 +391,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate text report
       const report = generateTextReport(analysisResult);
-      
+
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=financial-report-${new Date().toISOString().split('T')[0]}.txt`
       );
-      
+
       res.send(report);
     } catch (error) {
       console.error("Error generating report:", error);
@@ -405,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/template", (req, res) => {
     try {
       const template = generateSampleTemplate();
-      
+
       res.setHeader(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -414,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Content-Disposition",
         "attachment; filename=financial-template.xlsx"
       );
-      
+
       res.send(template);
     } catch (error) {
       console.error("Error generating template:", error);

@@ -24,6 +24,7 @@ export interface FinancialData {
   netIncome?: number;
   operatingIncome?: number;
   grossProfit?: number;
+  profitBeforeTax?: number;
   
   // Detailed balance sheet line items (optional)
   // Section I - Non-current assets
@@ -215,6 +216,7 @@ export const financialDataSchema = z.object({
   netIncome: z.number().optional(),
   operatingIncome: z.number().optional(),
   grossProfit: z.number().optional(),
+  profitBeforeTax: z.number().optional(),
   // Detailed line items
   intangibleAssets: z.number().optional(),
   rdResults: z.number().optional(),
