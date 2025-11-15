@@ -252,18 +252,15 @@ export default function Home() {
                   <RatioCard
                     title="Коэффициент текущей ликвидности"
                     ratio={analysisResult.ratios.currentRatio}
-                    trend="up"
                   />
                   <RatioCard
                     title="Коэффициент быстрой ликвидности"
                     ratio={analysisResult.ratios.quickRatio}
-                    trend="up"
                   />
                   <RatioCard
                     title="Коэффициент абсолютной ликвидности"
                     // Формула: (Денежные средства + Краткосрочные финансовые вложения) / Краткосрочные обязательства
                     ratio={analysisResult.ratios.cashRatio}
-                    trend="up"
                   />
                 </div>
               </div>
@@ -277,17 +274,14 @@ export default function Home() {
                   <RatioCard
                     title="Коэффициент автономии"
                     ratio={analysisResult.ratios.equityRatio}
-                    trend="stable"
                   />
                   <RatioCard
                     title="Коэффициент задолженности"
                     ratio={analysisResult.ratios.debtRatio}
-                    trend="stable"
                   />
                   <RatioCard
                     title="Финансовый рычаг"
                     ratio={analysisResult.ratios.financialLeverageRatio}
-                    trend="stable"
                   />
                 </div>
               </div>
@@ -302,12 +296,10 @@ export default function Home() {
                     title="Оборотный капитал"
                     // Формула: Оборотные активы - Краткосрочные обязательства
                     ratio={analysisResult.ratios.workingCapital}
-                    trend="up"
                   />
                   <RatioCard
                     title="Соотношение долга к капиталу"
                     ratio={analysisResult.ratios.debtToEquityRatio}
-                    trend="stable"
                   />
                 </div>
               </div>
@@ -323,7 +315,6 @@ export default function Home() {
                       <RatioCard
                         title="Рентабельность активов (ROA)"
                         ratio={analysisResult.ratios.roa}
-                        trend="up"
                         isPercentage={true}
                       />
                     )}
@@ -331,7 +322,6 @@ export default function Home() {
                       <RatioCard
                         title="Рентабельность капитала (ROE)"
                         ratio={analysisResult.ratios.roe}
-                        trend="up"
                         isPercentage={true}
                       />
                     )}
@@ -339,7 +329,6 @@ export default function Home() {
                       <RatioCard
                         title="Рентабельность продаж (ROS)"
                         ratio={analysisResult.ratios.ros}
-                        trend="up"
                         isPercentage={true}
                       />
                     )}
@@ -347,7 +336,6 @@ export default function Home() {
                       <RatioCard
                         title="Рентабельность по валовой прибыли"
                         ratio={analysisResult.ratios.grossProfitMargin}
-                        trend="up"
                         isPercentage={true}
                       />
                     )}
@@ -355,7 +343,6 @@ export default function Home() {
                       <RatioCard
                         title="Рентабельность по прибыли от продаж"
                         ratio={analysisResult.ratios.operatingProfitMargin}
-                        trend="up"
                         isPercentage={true}
                       />
                     )}
@@ -363,7 +350,6 @@ export default function Home() {
                       <RatioCard
                         title="Рентабельность по чистой прибыли"
                         ratio={analysisResult.ratios.netProfitMargin}
-                        trend="up"
                         isPercentage={true}
                       />
                     )}
