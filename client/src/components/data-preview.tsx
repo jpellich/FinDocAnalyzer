@@ -117,13 +117,19 @@ export function DataPreview({ data }: DataPreviewProps) {
           key: "longTermLiabilities",
           details: [
             data.borrowedFundsLongTerm !== undefined && data.borrowedFundsLongTerm !== 0
-              ? { label: "Заемные средства", value: data.borrowedFundsLongTerm, indent: 1 } : null,
+              ? { label: "Заемные средства (1410)", value: data.borrowedFundsLongTerm, indent: 1 } : null,
             data.deferredTaxLiabilities !== undefined && data.deferredTaxLiabilities !== 0
-              ? { label: "Отложенные налоговые обязательства", value: data.deferredTaxLiabilities, indent: 1 } : null,
+              ? { label: "Отложенные налоговые обязательства (1420)", value: data.deferredTaxLiabilities, indent: 1 } : null,
             data.estimatedLiabilities !== undefined && data.estimatedLiabilities !== 0
-              ? { label: "Оценочные обязательства", value: data.estimatedLiabilities, indent: 1 } : null,
+              ? { label: "Оценочные обязательства (1430)", value: data.estimatedLiabilities, indent: 1 } : null,
             data.otherLongTermLiabilities !== undefined && data.otherLongTermLiabilities !== 0
-              ? { label: "Прочие долгосрочные обязательства", value: data.otherLongTermLiabilities, indent: 1 } : null,
+              ? { label: "Прочие долгосрочные обязательства (1450)", value: data.otherLongTermLiabilities, indent: 1 } : null,
+            // If no detailed breakdown exists, show longTermDebt as a single item
+            (!data.borrowedFundsLongTerm || data.borrowedFundsLongTerm === 0) &&
+            (!data.deferredTaxLiabilities || data.deferredTaxLiabilities === 0) &&
+            (!data.estimatedLiabilities || data.estimatedLiabilities === 0) &&
+            (!data.otherLongTermLiabilities || data.otherLongTermLiabilities === 0)
+              ? { label: "Заемные средства", value: data.longTermDebt, indent: 1 } : null,
           ].filter(Boolean)
         },
         {
