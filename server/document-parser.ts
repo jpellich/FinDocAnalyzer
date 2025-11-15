@@ -273,7 +273,8 @@ function parseFinancialDataFromText(text: string): FinancialData {
     /^(.+?)\s+([\d\s,.()\-+]{3,})$/,
   ];
 
-  // Strategy 1: Try multi-line parsing (Field → Code → Value on separate lines)
+  // Strategy 1: Try multi-line parsing (Field → Code → Value(s) on separate lines)
+  // Supports: Field\nCode\nValue1\nValue2\nValue3 (up to 3 years)
   for (let i = 0; i < nonEmptyLines.length; i++) {
     const currentLine = nonEmptyLines[i];
     const normalizedCurrent = normalizeKey(currentLine);
@@ -285,15 +286,41 @@ function parseFinancialDataFromText(text: string): FinancialData {
 
     // Check if next line is a code (4 digits)
     if (i + 2 < nonEmptyLines.length && codePattern.test(nonEmptyLines[i + 1])) {
-      // Next line is code, so line after that should be the value
-      const valueStr = nonEmptyLines[i + 2];
-      const value = parseNumericValue(valueStr);
+      // Try to extract up to 3 values after the code
+      const values: (number | null)[] = [];
+      
+      for (let j = 0; j < 3; j++) {
+        const valueLineIndex = i + 2 + j;
+        if (valueLineIndex < nonEmptyLines.length) {
+          const valueStr = nonEmptyLines[valueLineIndex];
+          
+          // Stop if this line looks like a new field name or code
+          if (codePattern.test(valueStr) || valueStr.length > 50) {
+            break;
+          }
+          
+          const value = parseNumericValue(valueStr);
+          if (value !== null && !isNaN(value)) {
+            values.push(value);
+          } else {
+            // Stop if we encounter a non-numeric line
+            break;
+          }
+        }
+      }
 
-      // Accept any valid number, including zero and negative
-      if (value !== null && !isNaN(value)) {
+      // Store the first (most recent) value in dataMap
+      if (values.length > 0 && values[0] !== null) {
         if (normalizedCurrent) {
-          dataMap.set(normalizedCurrent, value);
+          dataMap.set(normalizedCurrent, values[0]);
           foundKeys.push(currentLine);
+          
+          // Store all extracted values in yearMaps
+          values.forEach((val, idx) => {
+            if (val !== null && !isNaN(val)) {
+              yearMaps[idx].set(normalizedCurrent, val);
+            }
+          });
         }
       }
     }
