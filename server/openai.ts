@@ -4,20 +4,31 @@ import type { FinancialData, FinancialRatios, BankCreditReport } from "@shared/s
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 // Reference: javascript_openai blueprint integration
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
-});
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+  if (!openai) {
+    openai = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY 
+    });
+  }
+  return openai;
+}
 
 /**
  * Get sector name from OKVED code using OpenAI
  */
 async function getOkvedSectorName(okvedCode: string): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
+  const client = getOpenAIClient();
+  if (!client) {
     return `Отрасль по ОКВЭД ${okvedCode}`;
   }
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: "gpt-5",
       messages: [
         {
@@ -154,9 +165,15 @@ export async function generateFinancialAnalysis(
 
     console.log('Sending request to OpenAI API...');
     
+    const client = getOpenAIClient();
+    if (!client) {
+      console.warn("OpenAI client not available, using fallback");
+      return generateFallbackAnalysis(data, ratios);
+    }
+    
     // Add timeout to OpenAI API call (30 seconds)
     const response = await Promise.race([
-      openai.chat.completions.create({
+      client.chat.completions.create({
         model: "gpt-5",
         messages: [
           {
