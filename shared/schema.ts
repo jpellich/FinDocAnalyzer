@@ -10,6 +10,10 @@ export interface FinancialData {
   // Index 0 = year -1, Index 1 = year -2
   yearlyData?: Map<string, number>[];
   
+  // Parsed years from document headers (e.g., [2023, 2022, 2021] from "На 31 декабря 2023 г.")
+  // Index 0 = most recent year (current period), Index 1 = previous year, etc.
+  parsedYears?: number[];
+  
   // Balance Sheet items
   currentAssets: number;
   cashAndEquivalents: number;

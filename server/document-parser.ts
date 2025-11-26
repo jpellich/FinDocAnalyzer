@@ -756,32 +756,67 @@ function parseFinancialDataFromText(text: string): FinancialData {
     ], true),
   };
 
-  // Parse multi-year data if available (look for column headers with years)
-  // Common patterns: "2023", "2022", "2021" or "на 31.12.2023", "на 31.12.2022"
-  const yearPattern = /\b(20\d{2})\b/g;
+  // Parse years from document headers
+  // Common patterns: "На 31 декабря 2023 г.", "на 31.12.2023", "2023", "31.12.2023"
+  const parsedYears: number[] = [];
   const textLines = text.split('\n');
-  const yearColumns: { year: number; columnIndex: number }[] = [];
-
-  // Try to find year headers in the document
-  for (let i = 0; i < Math.min(textLines.length, 50); i++) {
-    const line = textLines[i];
-    const matches = line.match(yearPattern);
-    if (matches && matches.length >= 2) {
-      // Found potential year headers
-      const years = matches.map(m => parseInt(m)).filter(y => y >= 2020 && y <= 2025);
-      // For now, we just log the years found. Actual parsing for multi-year data
-      // would require more complex logic to map field names to their corresponding year columns.
-      console.log(`Found potential years in header: ${years.join(', ')}`);
-      // Example of how one might start storing this:
-      // matches.forEach((yearStr, index) => {
-      //   const year = parseInt(yearStr);
-      //   if (year >= 2020 && year <= 2025) {
-      //     // This logic needs to be tied to actual column parsing
-      //     // yearColumns.push({ year, columnIndex: index });
-      //   }
-      // });
-      break; // Stop after finding the first line with potential year headers
+  
+  // Pattern for "На 31 декабря 2023 г." or similar date formats
+  const dateHeaderPattern = /(?:на\s+)?(?:31|30)[\s.]?(?:декабря|12)[\s.]?(20\d{2})/gi;
+  // Pattern for standalone years
+  const yearPattern = /\b(20\d{2})\b/g;
+  
+  // First, try to find date headers in the first 100 lines
+  for (let i = 0; i < Math.min(textLines.length, 100); i++) {
+    const line = textLines[i].toLowerCase();
+    
+    // Look for lines with multiple date patterns like "На 31 декабря 2023 г.   На 31 декабря 2022 г.   На 31 декабря 2021 г."
+    const dateMatches = line.matchAll(/(?:на\s+)?(?:31|30)[\s.]?(?:декабря|12)[\s.]?(20\d{2})/gi);
+    const years: number[] = [];
+    
+    for (const match of dateMatches) {
+      const year = parseInt(match[1]);
+      if (year >= 2015 && year <= 2030 && !years.includes(year)) {
+        years.push(year);
+      }
     }
+    
+    // If we found multiple years on this line, use them
+    if (years.length >= 2) {
+      // Sort in descending order (newest first)
+      years.sort((a, b) => b - a);
+      parsedYears.push(...years);
+      console.log(`Found years from date headers: ${years.join(', ')}`);
+      break;
+    }
+  }
+  
+  // If no date headers found, try to find year columns (2023, 2022, 2021 pattern)
+  if (parsedYears.length === 0) {
+    for (let i = 0; i < Math.min(textLines.length, 50); i++) {
+      const line = textLines[i];
+      const matches = [...line.matchAll(yearPattern)];
+      if (matches.length >= 2) {
+        const years = matches
+          .map(m => parseInt(m[1]))
+          .filter(y => y >= 2015 && y <= 2030);
+        
+        // Remove duplicates and sort descending
+        const uniqueYears = [...new Set(years)].sort((a, b) => b - a);
+        
+        if (uniqueYears.length >= 2) {
+          parsedYears.push(...uniqueYears);
+          console.log(`Found years from column headers: ${uniqueYears.join(', ')}`);
+          break;
+        }
+      }
+    }
+  }
+  
+  // Store parsed years in financial data
+  if (parsedYears.length > 0) {
+    financialData.parsedYears = parsedYears;
+    console.log(`Stored parsed years: ${parsedYears.join(', ')}`);
   }
 
   // Return the complete financial data with all parsed values including yearly data

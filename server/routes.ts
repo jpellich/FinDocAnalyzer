@@ -240,8 +240,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("✓ AI analysis generated");
 
       // Step 6: Create historical periods from parsed multi-year data
-      const currentYear = new Date().getFullYear();
       const periods: ReportingPeriod[] = [];
+
+      // Use parsed years from document headers, or fallback to current year calculation
+      const parsedYears = financialData.parsedYears;
+      const fallbackYear = new Date().getFullYear();
+      
+      // Get years for each period (from document or calculated)
+      const getYearForPeriod = (periodIndex: number): number => {
+        if (parsedYears && parsedYears[periodIndex] !== undefined) {
+          return parsedYears[periodIndex];
+        }
+        return fallbackYear - periodIndex;
+      };
 
       // Check if we have multi-year data from the parser
       // yearlyData contains ONLY historical years (current year excluded in parser)
@@ -250,10 +261,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (hasMultiYearData) {
         console.log(`Found multi-year data: ${financialData.yearlyData!.length} additional years`);
+        if (parsedYears) {
+          console.log(`Using parsed years from document: ${parsedYears.join(', ')}`);
+        }
         
         // Create periods for each year (current + 2 previous years)
         for (let i = 0; i < 3; i++) {
-          const year = currentYear - i;
+          const year = getYearForPeriod(i);
           let yearData: FinancialData;
           
           if (i === 0) {
@@ -329,13 +343,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         console.log('No multi-year data found, creating single-year period');
-        // If no multi-year data, create just one period for current year
+        // If no multi-year data, create just one period for the most recent year from document
+        const singleYear = getYearForPeriod(0);
         const validatedYearData = validateAndNormalizeFinancialData(normalizedData);
         const yearRatios = calculateFinancialRatios(validatedYearData);
         const yearEvaluatedRatios = evaluateRatios(yearRatios);
 
         periods.push({
-          year: currentYear,
+          year: singleYear,
           data: validatedYearData,
           ratios: yearEvaluatedRatios,
         });

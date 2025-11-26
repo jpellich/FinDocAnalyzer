@@ -59,9 +59,56 @@ export function parseExcelFile(buffer: Buffer): FinancialData {
     // Log found keys for debugging
     console.log('Найдены следующие поля в Excel:', foundKeys);
 
+    // Parse years from Excel headers
+    // Common patterns: "На 31 декабря 2023 г.", "на 31.12.2023", "2023"
+    const parsedYears: number[] = [];
+    
+    for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
+      const row = jsonData[i];
+      if (!row) continue;
+      
+      // Check each cell in the row for year patterns
+      const rowText = row.map(String).join(' ');
+      
+      // Pattern for "На 31 декабря 2023 г." or similar
+      const dateMatches = rowText.matchAll(/(?:на\s+)?(?:31|30)[\s.]?(?:декабря|12)[\s.]?(20\d{2})/gi);
+      const years: number[] = [];
+      
+      for (const match of dateMatches) {
+        const year = parseInt(match[1]);
+        if (year >= 2015 && year <= 2030 && !years.includes(year)) {
+          years.push(year);
+        }
+      }
+      
+      if (years.length >= 2) {
+        years.sort((a, b) => b - a);
+        parsedYears.push(...years);
+        console.log(`Found years from Excel headers: ${years.join(', ')}`);
+        break;
+      }
+      
+      // Try simple year pattern
+      if (parsedYears.length === 0) {
+        const yearMatches = rowText.match(/\b(20\d{2})\b/g);
+        if (yearMatches && yearMatches.length >= 2) {
+          const simpleYears = [...new Set(yearMatches.map(m => parseInt(m)))]
+            .filter(y => y >= 2015 && y <= 2030)
+            .sort((a, b) => b - a);
+          
+          if (simpleYears.length >= 2) {
+            parsedYears.push(...simpleYears);
+            console.log(`Found years from Excel column headers: ${simpleYears.join(', ')}`);
+            break;
+          }
+        }
+      }
+    }
+
     // Map the parsed data to our FinancialData structure
     // Support multiple possible naming conventions
     const financialData: FinancialData = {
+      parsedYears: parsedYears.length > 0 ? parsedYears : undefined,
       currentAssets: findValue(dataMap, foundKeys, [
         "оборотные активы",
         "оборотные активы всего",
