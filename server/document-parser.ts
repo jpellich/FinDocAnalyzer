@@ -370,6 +370,7 @@ function parseFinancialDataFromText(text: string): FinancialData {
   // Strategy 3: Parse by standard balance sheet codes (fallback for broken text)
   // Map of standard Russian balance sheet codes to field names
   const codeToFieldMap = new Map<string, string>([
+    // Balance sheet codes (Form 1)
     ['1250', 'денежные средства и денежные эквиваленты'],
     ['1240', 'финансовые вложения исключая денежные эквиваленты'],
     ['1230', 'финансовые вложения'],
@@ -399,30 +400,111 @@ function parseFinancialDataFromText(text: string): FinancialData {
     ['1520', 'кредиторская задолженность'],
     ['1600', 'баланс'],
     ['1700', 'баланс'],
+    // Income statement codes (Form 2) - P&L items
+    ['2110', 'выручка'],
+    ['2120', 'себестоимость продаж'],
+    ['2100', 'валовая прибыль убыток'],
+    ['2210', 'коммерческие расходы'],
+    ['2220', 'управленческие расходы'],
+    ['2200', 'прибыль убыток от продаж'],
+    ['2310', 'доходы от участия в других организациях'],
+    ['2320', 'проценты к получению'],
+    ['2330', 'проценты к уплате'],
+    ['2340', 'прочие доходы'],
+    ['2350', 'прочие расходы'],
+    ['2300', 'прибыль убыток до налогообложения'],
+    ['2410', 'текущий налог на прибыль'],
+    ['2400', 'чистая прибыль убыток'],
   ]);
 
+  // Strategy 3a: Parse single-line format "code value1 value2 value3" or "code value1 value2"
+  const singleLineCodePattern = /^(\d{4})\s+([\d\s,.()\-+]+)$/;
+  
+  for (const line of nonEmptyLines) {
+    const match = line.match(singleLineCodePattern);
+    if (match) {
+      const code = match[1];
+      const fieldName = codeToFieldMap.get(code);
+      
+      if (fieldName) {
+        // Extract all numeric values from the rest of the line
+        const valuesPart = match[2];
+        const valueParts = valuesPart.split(/\s+/).filter(p => p.trim());
+        const values: number[] = [];
+        
+        for (const part of valueParts) {
+          const value = parseNumericValue(part);
+          if (value !== null && !isNaN(value)) {
+            values.push(value);
+            if (values.length >= 3) break; // Max 3 years
+          }
+        }
+        
+        if (values.length > 0) {
+          const normalizedKey = normalizeKey(fieldName);
+          if (normalizedKey && !dataMap.has(normalizedKey)) {
+            dataMap.set(normalizedKey, values[0]);
+            foundKeys.push(`${fieldName} (код ${code}, single-line)`);
+            console.log(`Strategy 3a: Added ${fieldName} = ${values.join(', ')} from single-line`);
+            
+            values.forEach((val, idx) => {
+              yearMaps[idx].set(normalizedKey, val);
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Strategy 3b: Parse multi-line format with code on separate line
   for (let i = 0; i < nonEmptyLines.length; i++) {
     const line = nonEmptyLines[i];
-    // Check if this line is a 4-digit code
-    if (codePattern.test(line)) {
+    // Check if this line is a standalone 4-digit code
+    if (codePattern.test(line) && line.length === 4) {
       const code = line;
       const fieldName = codeToFieldMap.get(code);
 
       if (fieldName && i + 1 < nonEmptyLines.length) {
-        // Next line should be the value
-        const valueStr = nonEmptyLines[i + 1];
-        const value = parseNumericValue(valueStr);
+        // Try to extract up to 3 values after the code (for multi-year data)
+        const values: (number | null)[] = [];
+        
+        for (let j = 0; j < 3; j++) {
+          const valueLineIndex = i + 1 + j;
+          if (valueLineIndex < nonEmptyLines.length) {
+            const valueStr = nonEmptyLines[valueLineIndex];
+            
+            // Stop if this line looks like a new code or field name (too long)
+            if (codePattern.test(valueStr) || valueStr.length > 50) {
+              break;
+            }
+            
+            const value = parseNumericValue(valueStr);
+            if (value !== null && !isNaN(value)) {
+              values.push(value);
+            } else {
+              // Stop if we encounter a non-numeric line
+              break;
+            }
+          }
+        }
 
-        console.log(`Strategy 3: Found code ${code} for "${fieldName}", next line: "${valueStr}", parsed value: ${value}`);
+        console.log(`Strategy 3b: Found code ${code} for "${fieldName}", values: ${values.join(', ')}`);
 
-        if (value !== null && !isNaN(value)) {
+        if (values.length > 0 && values[0] !== null) {
           const normalizedKey = normalizeKey(fieldName);
           if (normalizedKey && !dataMap.has(normalizedKey)) {
-            dataMap.set(normalizedKey, value);
+            dataMap.set(normalizedKey, values[0]);
             foundKeys.push(`${fieldName} (код ${code})`);
-            console.log(`Strategy 3: Added ${fieldName} = ${value}`);
+            console.log(`Strategy 3b: Added ${fieldName} = ${values[0]}`);
+            
+            // Store all extracted values in yearMaps for historical data
+            values.forEach((val, idx) => {
+              if (val !== null && !isNaN(val)) {
+                yearMaps[idx].set(normalizedKey, val);
+              }
+            });
           } else if (normalizedKey && dataMap.has(normalizedKey)) {
-            console.log(`Strategy 3: Skipped ${fieldName} (already exists with value ${dataMap.get(normalizedKey)})`);
+            console.log(`Strategy 3b: Skipped ${fieldName} (already exists with value ${dataMap.get(normalizedKey)})`);
           }
         }
       }
@@ -431,6 +513,21 @@ function parseFinancialDataFromText(text: string): FinancialData {
 
   console.log(`Найдены следующие поля в документе (${foundKeys.length} полей):`, foundKeys.slice(0, 30));
   console.log(`Yearly data maps: ${yearMaps.map((m, i) => `Year ${i + 1}: ${m.size} fields`).join(', ')}`);
+  
+  // Debug: Log P&L values for each year
+  const pnlKeys = ["выручка", "валовая прибыль", "валовая прибыль убыток", "прибыль от продаж", "прибыль убыток от продаж", "чистая прибыль", "чистая прибыль убыток"];
+  yearMaps.forEach((map, idx) => {
+    const pnlData: Record<string, number> = {};
+    pnlKeys.forEach(key => {
+      const normalizedKey = normalizeKey(key);
+      if (map.has(normalizedKey)) {
+        pnlData[key] = map.get(normalizedKey)!;
+      }
+    });
+    if (Object.keys(pnlData).length > 0) {
+      console.log(`Year ${idx + 1} P&L data:`, pnlData);
+    }
+  });
 
   // Map the parsed data to our FinancialData structure
   const financialData: FinancialData = {

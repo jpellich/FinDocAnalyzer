@@ -264,37 +264,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const yearMap = financialData.yearlyData![i - 1];
             
             // Helper to get value from yearMap with same normalization as parser
-            const getYearValue = (keys: string[]): number => {
+            // Returns undefined if not found (not 0, to distinguish from actual 0 values)
+            const getYearValue = (keys: string[]): number | undefined => {
               for (const key of keys) {
                 const normalizedKey = key.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
                 if (yearMap.has(normalizedKey)) {
                   return yearMap.get(normalizedKey)!;
                 }
               }
-              // Return current year value as fallback
-              return 0;
+              return undefined;
+            };
+            
+            // Helper to get balance sheet value with fallback to current year
+            // (balance sheet items can use fallback as they're cumulative)
+            const getBalanceValue = (keys: string[], fallback: number): number => {
+              const value = getYearValue(keys);
+              return value !== undefined ? value : fallback;
+            };
+            
+            // Helper to get P&L value WITHOUT fallback (each year should have its own P&L)
+            const getPnLValue = (keys: string[]): number | undefined => {
+              return getYearValue(keys);
             };
             
             // Build FinancialData for this year using yearMap
+            // Balance sheet items use fallback, P&L items do NOT use fallback
             yearData = {
               okved: normalizedData.okved,
               companyName: normalizedData.companyName,
-              currentAssets: getYearValue(["итого по разделу ii", "оборотные активы"]) || normalizedData.currentAssets,
-              cashAndEquivalents: getYearValue(["денежные средства и денежные эквиваленты", "денежные средства"]) || normalizedData.cashAndEquivalents,
-              shortTermInvestments: getYearValue(["финансовые вложения"]) || normalizedData.shortTermInvestments,
-              accountsReceivable: getYearValue(["дебиторская задолженность"]) || normalizedData.accountsReceivable,
-              inventory: getYearValue(["запасы"]) || normalizedData.inventory,
-              totalAssets: getYearValue(["баланс", "активы"]) || normalizedData.totalAssets,
-              currentLiabilities: getYearValue(["итого по разделу v", "краткосрочные обязательства"]) || normalizedData.currentLiabilities,
-              shortTermDebt: getYearValue(["заемные средства"]) || normalizedData.shortTermDebt,
-              totalLiabilities: getYearValue(["обязательства"]) || normalizedData.totalLiabilities,
-              equity: getYearValue(["итого по разделу iii", "капитал и резервы"]) || normalizedData.equity,
-              longTermDebt: getYearValue(["итого по разделу iv", "долгосрочные обязательства"]) || normalizedData.longTermDebt,
-              revenue: getYearValue(["выручка"]) || normalizedData.revenue,
-              netIncome: getYearValue(["чистая прибыль"]) || normalizedData.netIncome,
-              operatingIncome: getYearValue(["прибыль от продаж"]) || normalizedData.operatingIncome,
-              grossProfit: getYearValue(["валовая прибыль"]) || normalizedData.grossProfit,
+              // Balance sheet items - use fallback to current year if not found
+              currentAssets: getBalanceValue(["итого по разделу ii", "оборотные активы"], normalizedData.currentAssets),
+              cashAndEquivalents: getBalanceValue(["денежные средства и денежные эквиваленты", "денежные средства"], normalizedData.cashAndEquivalents),
+              shortTermInvestments: getBalanceValue(["финансовые вложения"], normalizedData.shortTermInvestments),
+              accountsReceivable: getBalanceValue(["дебиторская задолженность"], normalizedData.accountsReceivable),
+              inventory: getBalanceValue(["запасы"], normalizedData.inventory),
+              totalAssets: getBalanceValue(["баланс", "активы"], normalizedData.totalAssets),
+              currentLiabilities: getBalanceValue(["итого по разделу v", "краткосрочные обязательства"], normalizedData.currentLiabilities),
+              shortTermDebt: getBalanceValue(["заемные средства"], normalizedData.shortTermDebt),
+              totalLiabilities: getBalanceValue(["обязательства"], normalizedData.totalLiabilities),
+              equity: getBalanceValue(["итого по разделу iii", "капитал и резервы"], normalizedData.equity),
+              longTermDebt: getBalanceValue(["итого по разделу iv", "долгосрочные обязательства"], normalizedData.longTermDebt),
+              // P&L items - do NOT use fallback (each year has its own P&L values)
+              // Include all normalized variants to match document-parser storage
+              revenue: getPnLValue(["выручка", "выручка от продаж"]) ?? 0,
+              netIncome: getPnLValue(["чистая прибыль убыток", "чистая прибыль", "net income"]) ?? 0,
+              operatingIncome: getPnLValue(["прибыль убыток от продаж", "прибыль от продаж", "операционная прибыль", "operating income"]) ?? 0,
+              grossProfit: getPnLValue(["валовая прибыль убыток", "валовая прибыль", "gross profit"]) ?? 0,
+              profitBeforeTax: getPnLValue(["прибыль убыток до налогообложения", "прибыль до налогообложения", "profit before tax"]) ?? 0,
             };
+            
+            console.log(`Year ${year} data: revenue=${yearData.revenue}, netIncome=${yearData.netIncome}, grossProfit=${yearData.grossProfit}, operatingIncome=${yearData.operatingIncome}`);
           }
 
           // Validate and calculate ratios for each year
